@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.1.0
+// @version      11.2.0
 // @updateURL     https://YOUR-UPDATE-HOST.example/op2p.user.js
 // @downloadURL   https://YOUR-UPDATE-HOST.example/op2p.user.js
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
