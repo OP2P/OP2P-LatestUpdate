@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OP2P Update Center</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:#0b0d12; color:#fff; font-family:Arial,Helvetica,sans-serif;
+}
+.card{
+  width:min(460px,92vw); padding:34px 28px; text-align:center;
+  background:#12151d; border:1px solid #292e3a; border-radius:22px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);
+}
+.logo{font-size:30px;font-weight:800;letter-spacing:2px}
+.badge{
+  display:inline-block;margin:18px 0 12px;padding:7px 13px;border-radius:999px;
+  background:#1d2430;border:1px solid #303846;font-size:12px;color:#aeb8c8;
+}
+.version{font-size:42px;font-weight:800;margin:4px 0 8px}
+.sub{color:#9da6b5;font-size:14px;margin-bottom:26px}
+.info{
+  display:flex;justify-content:space-between;gap:12px;text-align:left;
+  padding:14px 16px;margin-bottom:22px;background:#0d1016;border-radius:13px;
+  font-size:13px;color:#aeb6c4;
+}
+.info strong{color:#fff}
+.btn{
+  display:block;width:100%;padding:15px;border:0;border-radius:13px;
+  background:#fff;color:#0b0d12;font-size:15px;font-weight:800;cursor:pointer;
+}
+.btn:hover{opacity:.9}
+.note{margin-top:18px;font-size:11px;color:#707988;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">OP2P</div>
+  <div class="badge">OFFICIAL UPDATE CENTER</div>
+  <div class="version" id="version">V11.3.0</div>
+  <div class="sub">Latest stable release</div>
+
+  <div class="info">
+    <span>Status</span><strong>Ready to install</strong>
+  </div>
+
+  <button class="btn" onclick="installUpdate()">INSTALL / UPDATE</button>
+
+  <div class="note">
+    Tampermonkey / Violentmonkey will open the installation screen.<br>
+    Keep this page open until installation is complete.
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL =
+  "https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js";
+
+function installUpdate(){
+  window.location.href = SCRIPT_URL;
+}
+</script>
+</body>
+</html>
