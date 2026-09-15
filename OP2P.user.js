@@ -2,8 +2,6 @@
 // @name         OP2P1v1
 // @namespace    https://example.com/
 // @version      11.3.1
-// @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
-// @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @homepageURL   https://op2p.github.io/OP2P-LatestUpdate/
 // @supportURL    https://op2p.github.io/OP2P-LatestUpdate/
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
