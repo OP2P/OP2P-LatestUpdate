@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.4.1
+// @version      11.4.3
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
@@ -1826,6 +1826,7 @@ function _0x03f() {
     }
 
     async function executeMode() {
+        if (op2pSecurityBlocked()) return;
         if (!selectedModes.size) {
             status.textContent = "NO ACTION SELECTED";
             status.style.color = "#fb7185";
@@ -1835,10 +1836,12 @@ function _0x03f() {
         const order = ["BOTH", "F", "A", "LIKE_FOLLOW", "LIKE", "COMMENT", "SCROLL"];
 
         for (const mode of order) {
+            if (op2pSecurityBlocked()) break;
             if (!selectedModes.has(mode) || !running) continue;
 
             if (mode === "BOTH") {
                 const followed = await followCurrent();
+                if (op2pSecurityBlocked()) break;
                 await wait(500);
                 if (!running) break;
                 const added = await addFriendCurrent();
@@ -1847,12 +1850,15 @@ function _0x03f() {
                 status.textContent = followed && added ? "F + A" : followed ? "FOLLOW" : added ? "ADD FRIEND" : "F + A NOT FOUND";
             } else if (mode === "F") {
                 const followed = await followCurrent();
+                if (op2pSecurityBlocked()) break;
                 if (followed) totalCount++;
             } else if (mode === "A") {
                 const added = await addFriendCurrent();
+                if (op2pSecurityBlocked()) break;
                 if (added) totalCount++;
             } else if (mode === "LIKE_FOLLOW") {
                 const liked = await clickLike();
+                if (op2pSecurityBlocked()) break;
                 if (!running) break;
                 await wait(500);
                 if (!running) break;
@@ -1862,12 +1868,15 @@ function _0x03f() {
                 status.textContent = liked && followed ? "LIKE + FOLLOW" : followed ? "FOLLOW" : liked ? "LIKE" : "LIKE + FOLLOW NOT FOUND";
             } else if (mode === "LIKE") {
                 const liked = await clickLike();
+                if (op2pSecurityBlocked()) break;
                 if (liked) totalCount++;
             } else if (mode === "COMMENT") {
                 const commented = await autoComment();
+                if (op2pSecurityBlocked()) break;
                 if (commented) totalCount++;
             } else if (mode === "SCROLL") {
                 await autoScroll();
+                if (op2pSecurityBlocked()) break;
             }
 
             count.textContent = String(totalCount);
@@ -1894,6 +1903,11 @@ function _0x03f() {
     }
 
     function start() {
+        if (op2pSecurityBlocked()) {
+            status.textContent = "SECURITY LOCKED";
+            status.style.color = "#fb7185";
+            return;
+        }
         if (securityPaused) {
             status.textContent = "SECURITY PAUSED";
             status.style.color = "#facc15";
@@ -1953,13 +1967,18 @@ function _0x03f() {
         durationTimer = null;
         next.textContent = "-";
         remainingEl.textContent = "-";
-        status.textContent = "STOPPED";
-        status.style.color = "#ff6666";
+        if (op2pSecurityBlocked()) {
+            status.textContent = "SECURITY LOCKED";
+            status.style.color = "#fb7185";
+        } else {
+            status.textContent = "STOPPED";
+            status.style.color = "#ff6666";
+        }
         renderPremiumDashboard();
     }
 
     function schedule() {
-        if (!running) return;
+        if (op2pSecurityBlocked() || !running) return;
         clearTimeout(timer);
         clearInterval(countdownTimer);
 
@@ -1977,11 +1996,11 @@ function _0x03f() {
         timer = setTimeout(async () => {
             clearInterval(countdownTimer);
             _0x016.timerActive = false;
-            if (!running) return;
+            if (op2pSecurityBlocked() || !running) return;
             _0x016.actionInProgress = true;
             try { await executeMode(); } catch (e) { _0x019("RUNTIME_ERROR", String(e && e.message || e), "ERROR").catch(()=>{}); }
             _0x016.actionInProgress = false;
-            if (running) schedule();
+            if (!op2pSecurityBlocked() && running) schedule();
         }, remaining);
     }
 
@@ -2000,6 +2019,30 @@ function _0x03f() {
 const _0x040 = 60 * 1000; 
 let op2pV6HeartbeatTimer = null;
 let op2pV6Locked = false;
+
+function op2pSecurityHardStop(reason = "SECURITY_LOCK") {
+    const wasLocked = op2pV6Locked;
+    op2pV6Locked = true;
+    try { clearInterval(op2pHealthHeartbeatTimer); } catch(e) {}
+    if (!wasLocked) {
+        try { _0x019("SECURITY_LOCKED", String(reason || "SECURITY_LOCK"), "ERROR").catch(()=>{}); } catch(e) {}
+    }
+    try {
+        if (typeof stop === "function") stop(reason);
+    } catch(e) {}
+    try {
+        _0x016.running = false;
+        _0x016.actionInProgress = false;
+        _0x016.timerActive = false;
+    } catch(e) {}
+    try {
+        running = false;
+    } catch(e) {}
+}
+
+function op2pSecurityBlocked() {
+    return !!op2pV6Locked;
+}
 
 async function _0x041(showAlert = false) {
     if (op2pV6Locked) return false;
@@ -2026,8 +2069,7 @@ async function _0x041(showAlert = false) {
             err === "SYSTEM_KILLED" ||
             err === "CLIENT_UPDATE_REQUIRED"
         ) {
-            op2pV6Locked = true;
-            try { if (typeof stop === "function") stop(); } catch(e) {}
+            op2pSecurityHardStop(err);
             if (showAlert) {
                 alert("OP2P: License/security session tidak sah (" + err + ").");
             }
@@ -2050,8 +2092,7 @@ async function _0x045() {
         if (res && res.ok === true) return true;
         const err = String((res && res.error) || "");
         if (err === "SYSTEM_KILLED" || err === "CLIENT_UPDATE_REQUIRED" || err === "LICENSE_MANUALLY_LOCKED" || err === "BROWSER_LOCKED" || err === "LICENSE_REVOKED" || err === "LICENSE_EXPIRED") {
-            op2pV6Locked = true;
-            try { if (typeof stop === "function") stop(); } catch(e) {}
+            op2pSecurityHardStop(err);
             _0x019("SECURITY_LOCK", err, "ERROR").catch(()=>{});
             try { alert("OP2P: Security Monitor mengunci client (" + err + ")."); } catch(e) {}
             return false;
@@ -2066,15 +2107,20 @@ function _0x046() {
 
 function _0x042() {
     setInterval(() => {
-        if (!op2pUiSchedule || !_0x016.running || _0x016.actionInProgress || _0x016.timerActive) return;
+        if (op2pSecurityBlocked() || !op2pUiSchedule || !_0x016.running || _0x016.actionInProgress || _0x016.timerActive) return;
         _0x016.recoveryCount++; _0x016.lastRecovery=Date.now();
         _0x019("SAFE_RESTART", "Scheduler watchdog recovered an idle runtime", "WARNING").catch(()=>{});
         try { op2pUiSchedule(); } catch(e) { _0x019("SAFE_RESTART_FAILED", String(e&&e.message||e), "ERROR").catch(()=>{}); }
     }, _0x00a);
 }
 
+let op2pHealthHeartbeatTimer = null;
 function _0x043() {
-    setInterval(() => _0x019("HEARTBEAT", "Client health heartbeat").catch(()=>{}), _0x009);
+    clearInterval(op2pHealthHeartbeatTimer);
+    op2pHealthHeartbeatTimer = setInterval(() => {
+        if (op2pV6Locked) return;
+        _0x019("HEARTBEAT", "Client health heartbeat").catch(()=>{});
+    }, _0x009);
 }
 
 function _0x044() {
