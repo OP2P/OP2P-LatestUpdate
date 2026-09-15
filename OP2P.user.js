@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.5.0
+// @version      11.5.1
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
-// @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
+// @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
 // @match        https://www.facebook.com/*
 // @match        https://web.facebook.com/*
 // @match        https://m.facebook.com/*
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.5.0";
+const _0x007 = "11.5.1";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_5";
@@ -363,7 +363,7 @@ async function _0x01c() {
     let lastValidTs = Number(await _0x00e(_0x005, "0")) || 0;
     const now = Date.now();
 
-    // V11.5.0 SECURITY FIX:
+    // V11.5.1 SECURITY FIX:
     // Startup MUST contact the server. Do not allow the local 15-minute cache
     // to bypass REVOKE / LOCK / SUSPEND / EXPIRED status after page refresh.
 
@@ -472,19 +472,22 @@ async function _0x01c() {
         }
 
         
-        if (storedKey) {
-            return true;
+        // SECURITY HARDENING V11.5.1: fail closed.
+        // Never trust a stored license when the server rejects validation.
+        // This prevents offline/network-failure bypass of LOCK/SUSPEND/REVOKE/EXPIRED.
+        if (err === "NETWORK_ERROR" || err === "TIMEOUT" || err === "INVALID_API_RESPONSE" || err === "LICENSE_ERROR") {
+            op2pSecurityHardStop("SERVER_VALIDATION_FAILED");
+            alert("OP2P: Server license validation gagal (" + err + "). OP2P dikunci untuk keselamatan. Sila semak internet dan cuba lagi.");
+            return false;
         }
 
         alert("OP2P Amaran: " + err);
         return false;
 
     } catch(e) {
-        if (storedKey) {
-            
-            return true;
-        }
-        alert("OP2P: Gagal semak license (" + String(e.message || e) + "). Sila semak sambungan internet.");
+        // SECURITY HARDENING V11.5.1: fail closed on unexpected validation errors.
+        op2pSecurityHardStop("SERVER_VALIDATION_EXCEPTION");
+        alert("OP2P: Gagal semak license (" + String(e.message || e) + "). OP2P dikunci untuk keselamatan. Sila semak sambungan internet.");
         return false;
     }
 }
@@ -1060,7 +1063,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.5.0 • PREMIUM</span>
+            <span class="brandBadge">V11.5.1 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1171,7 +1174,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.5.0</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.5.1</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
