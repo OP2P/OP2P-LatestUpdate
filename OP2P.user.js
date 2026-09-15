@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.4.6
+// @version      11.4.7
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.4.6";
+const _0x007 = "11.4.7";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const _0x009 = 60 * 1000;
@@ -289,7 +289,7 @@ async function _0x01c() {
     let lastValidTs = Number(await _0x00e(_0x005, "0")) || 0;
     const now = Date.now();
 
-    // V11.4.5 SECURITY FIX:
+    // V11.4.7 SECURITY FIX:
     // Startup MUST contact the server. Do not allow the local 15-minute cache
     // to bypass REVOKE / LOCK / SUSPEND / EXPIRED status after page refresh.
 
@@ -365,6 +365,12 @@ async function _0x01c() {
         if (err === "LICENSE_MANUALLY_LOCKED") {
             op2pSecurityHardStop("LICENSE_MANUALLY_LOCKED");
             try { alert("OP2P: License ini dikunci oleh admin."); } catch(e) {}
+            return false;
+        }
+
+        if (err === "LICENSE_INACTIVE") {
+            op2pSecurityHardStop("LICENSE_INACTIVE");
+            try { alert("OP2P: License ini telah di-suspend oleh admin."); } catch(e) {}
             return false;
         }
 
@@ -980,7 +986,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.4.6 • PREMIUM</span>
+            <span class="brandBadge">V11.4.7 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1091,7 +1097,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.4.6</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.4.7</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -2071,6 +2077,7 @@ async function _0x041(showAlert = false) {
             err === "BROWSER_LOCKED" ||
             err === "LICENSE_LOCKED" ||
             err === "LICENSE_MANUALLY_LOCKED" ||
+            err === "LICENSE_INACTIVE" ||
             err === "LICENSE_REVOKED" ||
             err === "LICENSE_EXPIRED" ||
             err === "SYSTEM_KILLED" ||
@@ -2098,7 +2105,7 @@ async function _0x045() {
         const res = await _0x01a("security_policy", key);
         if (res && res.ok === true) return true;
         const err = String((res && res.error) || "");
-        if (err === "SYSTEM_KILLED" || err === "CLIENT_UPDATE_REQUIRED" || err === "LICENSE_MANUALLY_LOCKED" || err === "BROWSER_LOCKED" || err === "LICENSE_REVOKED" || err === "LICENSE_EXPIRED") {
+        if (err === "SYSTEM_KILLED" || err === "CLIENT_UPDATE_REQUIRED" || err === "LICENSE_MANUALLY_LOCKED" || err === "LICENSE_INACTIVE" || err === "BROWSER_LOCKED" || err === "LICENSE_REVOKED" || err === "LICENSE_EXPIRED") {
             op2pSecurityHardStop(err);
             _0x019("SECURITY_LOCK", err, "ERROR").catch(()=>{});
             try { alert("OP2P: Security Monitor mengunci client (" + err + ")."); } catch(e) {}
