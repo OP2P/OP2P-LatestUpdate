@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.6.0
+// @version      11.6.1
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.6.0 | Production Hardening | Server-authorized actions | Integrity baseline aligned */
+/* OP2P Secure Distribution V11.6.1 | Production Hardening | Fresh server policy | Integrity baseline aligned */
 (() => {
 "use strict";
 
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.6.0";
+const _0x007 = "11.6.1";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_6_0";
@@ -195,7 +195,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.0"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.1"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -1064,7 +1064,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.5.7 • PREMIUM</span>
+            <span class="brandBadge">V11.6.1 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1179,7 +1179,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.5.7</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.6.1</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -1422,7 +1422,7 @@ function _0x03f() {
             dashLicenseMeta.textContent = licState + (op2pServerPolicy.customer ? " • " + op2pServerPolicy.customer : "");
             dashPlan.textContent = planText;
             dashPlan.className = "dashValue securityGood";
-            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.6.0");
+            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.6.1");
             dashBrowser.textContent = op2pServerPolicy.browserLocked ? "✓ LOCKED" : "⚠ UNBOUND";
             dashBrowser.className = "dashValue " + (op2pServerPolicy.browserLocked ? "securityGood" : "securityWatch");
             dashBrowserMeta.textContent = _0x015.browser + " " + _0x015.version;
@@ -1443,7 +1443,7 @@ function _0x03f() {
             dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE") + (op2pServerPolicy.securityAlerts ? " • alerts " + op2pServerPolicy.securityAlerts : "");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.6.0 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.6.1 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
@@ -2435,6 +2435,20 @@ function _0x044() {
     );
 }
 
-_0x01c().then(async ok => { if (ok) { try { const cachedPolicy = localStorage.getItem(OP2P_POLICY_STORAGE); if (cachedPolicy) op2pServerPolicy = op2pNormalizePolicy(JSON.parse(cachedPolicy)); } catch(e) {} init(); renderServerPolicyUi?.(); await op2pLoadServerPolicy(false); _0x044(); _0x042(); _0x043(); _0x046(); _0x019("CLIENT_ONLINE", "Client started").catch(()=>{}); } });
+_0x01c().then(async ok => {
+    if (!ok) return;
+    try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_5_4"); } catch(e) {}
+    try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_6_0"); } catch(e) {}
+    const freshPolicyOk = await op2pLoadServerPolicy(true);
+    if (!freshPolicyOk) {
+        op2pSecurityHardStop("SERVER_POLICY_UNAVAILABLE");
+        try { alert("OP2P: Server policy tidak dapat disahkan. OP2P dikunci untuk keselamatan."); } catch(e) {}
+        return;
+    }
+    init();
+    renderServerPolicyUi?.();
+    _0x044(); _0x042(); _0x043(); _0x046();
+    _0x019("CLIENT_ONLINE", "Client started").catch(()=>{});
+});
 
 })();
