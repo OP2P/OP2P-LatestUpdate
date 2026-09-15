@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.5.1
+// @version      11.5.3
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11 | Build: RK1 | Core baseline preserved */
+/* OP2P Secure Distribution V11.5.3 | Production Hardening | Server-authorized actions | Core baseline preserved */
 (() => {
 "use strict";
 
@@ -35,14 +35,15 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.5.1";
+const _0x007 = "11.5.3";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_5";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_5_2";
 let op2pServerPolicy = { plan:"PRO", features:{FOLLOW:true,FRIEND:true,LIKE:true,COMMENT:true,SCROLL:true}, config:{minDelaySeconds:1,maxDelaySeconds:60,forceDelaySeconds:0,maxActionsPerSession:0}, updatedAt:0 };
 const _0x009 = 60 * 1000;
 const _0x00a = 15000;
 const _0x00b = 8000;
+const OP2P_RUNTIME_FAIL_LIMIT = 3;
 
 
 // V11.3.4 FIREFOX PERSISTENCE FIX: explicit modern GM.getValue/GM.setValue bridge for Greasemonkey 4+.
@@ -194,7 +195,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), features, config, policyVersion:String(p.policyVersion || "11.5"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), features, config, policyVersion:String(p.policyVersion || "11.5.3"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -1711,6 +1712,11 @@ function _0x03f() {
     }
 
     async function clickLike() {
+        const actionToken = await authorizeServerAction("LIKE");
+        if (!actionToken) return false;
+        let committed = false;
+        let actionPerformed = false;
+        try {
         const button = findLikeButton();
         if (!button) {
             status.textContent = "LIKE NOT FOUND";
@@ -1732,10 +1738,14 @@ function _0x03f() {
         }
 
         button.click();
+        actionPerformed = true;
         incrementStat("like");
         status.textContent = "LIKE";
         status.style.color = "#4ade80";
-        return true;
+        const finalized = await finalizeServerAction("LIKE", actionToken, true);
+        committed = finalized;
+        return finalized;
+        } finally { if (!committed && !actionPerformed) await finalizeServerAction("LIKE", actionToken, false); }
     }
 
     function getButtonText(el) {
@@ -1767,6 +1777,11 @@ function _0x03f() {
     }
 
     async function followCurrent() {
+        const actionToken = await authorizeServerAction("FOLLOW");
+        if (!actionToken) return false;
+        let committed = false;
+        let actionPerformed = false;
+        try {
         const button = findFollowButton();
         if (!button) {
             status.textContent = "FOLLOW NOT FOUND";
@@ -1782,13 +1797,22 @@ function _0x03f() {
         }
 
         button.click();
+        actionPerformed = true;
         incrementStat("follow");
         status.textContent = "FOLLOW";
         status.style.color = "#60a5fa";
-        return true;
+        const finalized = await finalizeServerAction("FOLLOW", actionToken, true);
+        committed = finalized;
+        return finalized;
+        } finally { if (!committed && !actionPerformed) await finalizeServerAction("FOLLOW", actionToken, false); }
     }
 
     async function addFriendCurrent() {
+        const actionToken = await authorizeServerAction("FRIEND");
+        if (!actionToken) return false;
+        let committed = false;
+        let actionPerformed = false;
+        try {
         const button = findAddFriendButton();
         if (!button) {
             status.textContent = "ADD FRIEND NOT FOUND";
@@ -1804,10 +1828,14 @@ function _0x03f() {
         }
 
         button.click();
+        actionPerformed = true;
         incrementStat("friend");
         status.textContent = "ADD FRIEND";
         status.style.color = "#c084fc";
-        return true;
+        const finalized = await finalizeServerAction("FRIEND", actionToken, true);
+        committed = finalized;
+        return finalized;
+        } finally { if (!committed && !actionPerformed) await finalizeServerAction("FRIEND", actionToken, false); }
     }
 
     function getCenterDistance(el) {
@@ -1834,6 +1862,10 @@ function _0x03f() {
 
     async function autoComment() {
         if (commentBusy) return false;
+        const actionToken = await authorizeServerAction("COMMENT");
+        if (!actionToken) return false;
+        let committed = false;
+        let actionPerformed = false;
         commentBusy = true;
 
         try {
@@ -1883,6 +1915,7 @@ function _0x03f() {
                 return false;
             }
 
+            actionPerformed = true;
             box.dispatchEvent(
                 new KeyboardEvent("keydown", {
                     key:"Enter",
@@ -1898,14 +1931,22 @@ function _0x03f() {
             status.textContent = "AUTO COMMENT";
             status.style.color = "#4ade80";
             await wait(1500);
-            return true;
+            const finalized = await finalizeServerAction("COMMENT", actionToken, true);
+            committed = finalized;
+            return finalized;
 
         } finally {
+            if (!committed && !actionPerformed) await finalizeServerAction("COMMENT", actionToken, false);
             commentBusy = false;
         }
     }
 
     async function autoScroll() {
+        const actionToken = await authorizeServerAction("SCROLL");
+        if (!actionToken) return false;
+        let committed = false;
+        let actionPerformed = false;
+        try {
         let step = Number(scrollStepInput.value);
         if (!Number.isFinite(step) || step <= 0) { step = 80; scrollStepInput.value = "80"; }
         step = Math.min(200, Math.max(10, step));
@@ -1915,13 +1956,58 @@ function _0x03f() {
 
         const distance = Math.round(window.innerHeight * (step / 100));
         window.scrollBy({ top:distance, left:0, behavior:"smooth" });
+        actionPerformed = true;
 
         incrementStat("scroll");
         status.textContent = "AUTO SCROLL";
         status.style.color = "#facc15";
 
         await wait(waitSeconds * 1000);
-        return true;
+        const finalized = await finalizeServerAction("SCROLL", actionToken, true);
+        committed = finalized;
+        return finalized;
+        } finally { if (!committed && !actionPerformed) await finalizeServerAction("SCROLL", actionToken, false); }
+    }
+
+    async function authorizeServerAction(feature) {
+        if (op2pSecurityBlocked()) return null;
+        try {
+            const key = String(await _0x010() || "").trim();
+            if (!key) return null;
+            const res = await _0x01a("authorize_action", key, { feature:String(feature||"").toUpperCase() });
+            if (res && res.ok === true && res.actionToken) return String(res.actionToken);
+            const err = String((res && res.error) || "ACTION_AUTH_FAILED");
+            if (["SYSTEM_KILLED","CLIENT_UPDATE_REQUIRED","LICENSE_MANUALLY_LOCKED","LICENSE_INACTIVE","BROWSER_LOCKED","LICENSE_REVOKED","LICENSE_EXPIRED","LICENSE_NOT_ACTIVATED","SESSION_INVALID","SESSION_EXPIRED","MISSING_SESSION"].includes(err)) {
+                op2pSecurityHardStop(err);
+                try { alert("OP2P: Server action authorization gagal (" + err + ")."); } catch(e) {}
+            } else if (err === "ACTION_QUOTA_REACHED") {
+                status.textContent = "SERVER QUOTA REACHED";
+                status.style.color = "#fb7185";
+                running = false;
+            } else if (err === "FEATURE_NOT_ALLOWED") {
+                _0x018("FEATURE_BLOCKED", feature, "WARNING");
+            }
+            return null;
+        } catch(e) {
+            _0x018("ACTION_AUTH_ERROR", String(e && e.message || e), "ERROR");
+            return null;
+        }
+    }
+
+    async function finalizeServerAction(feature, actionToken, success) {
+        if (!actionToken) return false;
+        try {
+            const key = String(await _0x010() || "").trim();
+            if (!key) return false;
+            const endpoint = success ? "commit_action" : "release_action";
+            const res = await _0x01a(endpoint, key, { action_token:String(actionToken), feature:String(feature||"").toUpperCase() });
+            if (res && res.ok === true) return true;
+            _0x018(success ? "ACTION_COMMIT_ERROR" : "ACTION_RELEASE_ERROR", String((res && res.error) || "FINALIZE_FAILED"), "WARNING");
+            return false;
+        } catch(e) {
+            _0x018(success ? "ACTION_COMMIT_ERROR" : "ACTION_RELEASE_ERROR", String(e && e.message || e), "WARNING");
+            return false;
+        }
     }
 
     async function executeMode() {
@@ -2127,6 +2213,8 @@ function _0x03f() {
 const _0x040 = 60 * 1000; 
 let op2pV6HeartbeatTimer = null;
 let op2pV6Locked = false;
+let op2pHeartbeatFailures = 0;
+let op2pPolicyFailures = 0;
 
 function op2pSecurityHardStop(reason = "SECURITY_LOCK") {
     const wasLocked = op2pV6Locked;
@@ -2164,35 +2252,34 @@ async function _0x041(showAlert = false) {
     try {
         const key = String(await _0x010() || "").trim();
         if (!key) return false;
-
         const res = await _0x01a("heartbeat", key);
         if (res && res.ok === true && res.status === "ACTIVE") {
+            op2pHeartbeatFailures = 0;
             void _0x00f(_0x005, String(Date.now()));
             return true;
         }
 
         const err = String((res && res.error) || "LICENSE_ERROR");
-
-        if (
-            err === "BROWSER_RESET_REQUIRED" ||
-            err === "BROWSER_LOCKED" ||
-            err === "LICENSE_LOCKED" ||
-            err === "LICENSE_MANUALLY_LOCKED" ||
-            err === "LICENSE_INACTIVE" ||
-            err === "LICENSE_REVOKED" ||
-            err === "LICENSE_EXPIRED" ||
-            err === "SYSTEM_KILLED" ||
-            err === "CLIENT_UPDATE_REQUIRED"
-        ) {
+        if (["BROWSER_RESET_REQUIRED","BROWSER_LOCKED","LICENSE_LOCKED","LICENSE_MANUALLY_LOCKED","LICENSE_INACTIVE","LICENSE_REVOKED","LICENSE_EXPIRED","SYSTEM_KILLED","CLIENT_UPDATE_REQUIRED","SESSION_INVALID","SESSION_EXPIRED","MISSING_SESSION"].includes(err)) {
             op2pSecurityHardStop(err);
-            if (showAlert) {
-                alert("OP2P: License/security session tidak sah (" + err + ").");
-            }
+            if (showAlert) { try { alert("OP2P: License/security session tidak sah (" + err + ")."); } catch(e) {} }
             return false;
         }
 
+        op2pHeartbeatFailures++;
+        _0x019("HEARTBEAT_FAILED", err, "WARNING").catch(()=>{});
+        if (op2pHeartbeatFailures >= OP2P_RUNTIME_FAIL_LIMIT) {
+            op2pSecurityHardStop("RUNTIME_HEARTBEAT_FAILED");
+            try { alert("OP2P: Sambungan server gagal berulang kali. OP2P dikunci sementara untuk keselamatan."); } catch(e) {}
+        }
         return false;
     } catch(e) {
+        op2pHeartbeatFailures++;
+        _0x019("HEARTBEAT_NETWORK_ERROR", String(e && e.message || e), "WARNING").catch(()=>{});
+        if (op2pHeartbeatFailures >= OP2P_RUNTIME_FAIL_LIMIT) {
+            op2pSecurityHardStop("RUNTIME_HEARTBEAT_FAILED");
+            try { alert("OP2P: Server tidak dapat dicapai selepas beberapa percubaan. OP2P dikunci untuk keselamatan."); } catch(_) {}
+        }
         return false;
     }
 }
@@ -2204,15 +2291,34 @@ async function _0x045() {
         const key = String(await _0x010() || "").trim();
         if (!key) return false;
         const res = await _0x01a("security_policy", key);
-        if (res && res.ok === true) { op2pServerPolicy = op2pNormalizePolicy(res); try { localStorage.setItem(OP2P_POLICY_STORAGE, JSON.stringify(op2pServerPolicy)); } catch(e) {} if (typeof window.op2pPolicyRefresh === "function") window.op2pPolicyRefresh(); return true; }
-        const err = String((res && res.error) || "");
-        if (err === "SYSTEM_KILLED" || err === "CLIENT_UPDATE_REQUIRED" || err === "LICENSE_MANUALLY_LOCKED" || err === "LICENSE_INACTIVE" || err === "BROWSER_LOCKED" || err === "LICENSE_REVOKED" || err === "LICENSE_EXPIRED") {
+        if (res && res.ok === true) {
+            op2pPolicyFailures = 0;
+            op2pServerPolicy = op2pNormalizePolicy(res);
+            try { localStorage.setItem(OP2P_POLICY_STORAGE, JSON.stringify(op2pServerPolicy)); } catch(e) {}
+            if (typeof window.op2pPolicyRefresh === "function") window.op2pPolicyRefresh();
+            return true;
+        }
+        const err = String((res && res.error) || "POLICY_CHECK_FAILED");
+        if (["SYSTEM_KILLED","CLIENT_UPDATE_REQUIRED","LICENSE_MANUALLY_LOCKED","LICENSE_INACTIVE","BROWSER_LOCKED","LICENSE_REVOKED","LICENSE_EXPIRED","SESSION_INVALID","SESSION_EXPIRED","MISSING_SESSION"].includes(err)) {
             op2pSecurityHardStop(err);
             _0x019("SECURITY_LOCK", err, "ERROR").catch(()=>{});
             try { alert("OP2P: Security Monitor mengunci client (" + err + ")."); } catch(e) {}
             return false;
         }
-    } catch(e) {}
+        op2pPolicyFailures++;
+        _0x019("POLICY_CHECK_FAILED", err, "WARNING").catch(()=>{});
+        if (op2pPolicyFailures >= OP2P_RUNTIME_FAIL_LIMIT) {
+            op2pSecurityHardStop("RUNTIME_POLICY_FAILED");
+            try { alert("OP2P: Server policy gagal diperoleh berulang kali. OP2P dikunci untuk keselamatan."); } catch(e) {}
+        }
+    } catch(e) {
+        op2pPolicyFailures++;
+        _0x019("POLICY_NETWORK_ERROR", String(e && e.message || e), "WARNING").catch(()=>{});
+        if (op2pPolicyFailures >= OP2P_RUNTIME_FAIL_LIMIT) {
+            op2pSecurityHardStop("RUNTIME_POLICY_FAILED");
+            try { alert("OP2P: Sambungan policy server gagal berulang kali. OP2P dikunci untuk keselamatan."); } catch(_) {}
+        }
+    }
     return false;
 }
 function _0x046() {
