@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.5.4
+// @version      11.5.5
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.5.4";
+const _0x007 = "11.5.5";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_5_4";
@@ -529,7 +529,7 @@ const _0x027 =
     + _0x01f
     + "|LICENSE|BROWSER|SECURITY";
 
-const _0x028 = "82d06ce86eeef7d8983e96ad02fdfcdae76cfc4f83b68e13c24207ba50138f65";
+const _0x028 = "8adb5fb47ceb62450fb082fde5711662fefca14d9faed96a0d70cd08d4f223f";
 
 let securityPaused = false;
 let securityActionTimes = [];
@@ -1296,10 +1296,35 @@ function _0x03f() {
             if (!key) throw new Error("LICENSE_REQUIRED");
             const res = await _0x01a("security_policy", key);
             if (!res || res.ok !== true) {
+                let cached = null;
+                try {
+                    const raw = localStorage.getItem(OP2P_POLICY_STORAGE);
+                    cached = raw ? JSON.parse(raw) : null;
+                } catch (_) {}
+                const latestCached = String(cached && (cached.latestClientVersion || cached.minClientVersion) || "").trim();
+                if (latestCached) {
+                    latestUpdateVersion = latestCached;
+                    latestUpdateUrl = String((cached && cached.updateUrl) || "").trim();
+                    updateLatest.textContent = latestCached;
+                    const cmpCached = compareUiVersions(_0x007, latestCached);
+                    if (cmpCached < 0) {
+                        updateLevel.textContent = "UPDATE AVAILABLE ▼";
+                        updateLevel.className = "securityWatch";
+                        updateStatus.textContent = String((cached && cached.updateNotes) || ("New OP2P version " + latestCached + " is available."));
+                        updateOpenBtn.disabled = !latestUpdateUrl;
+                    } else {
+                        updateLevel.textContent = "CURRENT • CACHED ▼";
+                        updateLevel.className = "securityGood";
+                        updateStatus.textContent = "Using the last verified server update policy.";
+                        updateOpenBtn.disabled = !latestUpdateUrl;
+                    }
+                    return true;
+                }
                 const err = String((res && res.error) || "UPDATE_CHECK_FAILED");
-                updateLevel.textContent = "ERROR ▼";
-                updateStatus.textContent = "Update check failed: " + err;
+                updateLevel.textContent = "RETRY ▼";
+                updateStatus.textContent = "Update policy unavailable: " + err;
                 updateLatest.textContent = "—";
+                updateOpenBtn.disabled = false;
                 return false;
             }
             const latest = String(res.latestClientVersion || res.minClientVersion || _0x007).trim() || _0x007;
@@ -1322,11 +1347,29 @@ function _0x03f() {
             }
             return true;
         } catch (e) {
-            updateLevel.textContent = "OFFLINE ▼";
-            updateStatus.textContent = "Unable to check updates right now.";
+            let cached = null;
+            try {
+                const raw = localStorage.getItem(OP2P_POLICY_STORAGE);
+                cached = raw ? JSON.parse(raw) : null;
+            } catch (_) {}
+            const latestCached = String(cached && (cached.latestClientVersion || cached.minClientVersion) || "").trim();
+            if (latestCached) {
+                latestUpdateVersion = latestCached;
+                latestUpdateUrl = String((cached && cached.updateUrl) || "").trim();
+                updateLatest.textContent = latestCached;
+                const cmpCached = compareUiVersions(_0x007, latestCached);
+                updateLevel.textContent = cmpCached < 0 ? "UPDATE AVAILABLE • CACHED ▼" : "CURRENT • CACHED ▼";
+                updateLevel.className = cmpCached < 0 ? "securityWatch" : "securityGood";
+                updateStatus.textContent = "Using the last verified server update policy. Retry when online.";
+                updateOpenBtn.disabled = !latestUpdateUrl;
+                if (showResult) status.textContent = "UPDATE POLICY CACHED";
+                return true;
+            }
+            updateLevel.textContent = "RETRY ▼";
+            updateStatus.textContent = "Unable to check updates right now. Retry when the server is reachable.";
             updateLatest.textContent = "—";
-            updateOpenBtn.disabled = true;
-            if (showResult) status.textContent = "UPDATE CHECK OFFLINE";
+            updateOpenBtn.disabled = false;
+            if (showResult) status.textContent = "UPDATE CHECK RETRY";
             return false;
         }
     }
