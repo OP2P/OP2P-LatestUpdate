@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.5.7
+// @version      11.6.0
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.5.7 | Production Hardening | Server-authorized actions | Integrity baseline aligned */
+/* OP2P Secure Distribution V11.6.0 | Production Hardening | Server-authorized actions | Integrity baseline aligned */
 (() => {
 "use strict";
 
@@ -35,11 +35,11 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.5.7";
+const _0x007 = "11.6.0";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_5_4";
-let op2pServerPolicy = { plan:"PRO", features:{FOLLOW:true,FRIEND:true,LIKE:true,COMMENT:true,SCROLL:true}, config:{minDelaySeconds:1,maxDelaySeconds:60,forceDelaySeconds:0,maxActionsPerSession:0}, updatedAt:0 };
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_6_0";
+let op2pServerPolicy = { plan:"PRO", customer:"", status:"ACTIVE", licenseState:"ACTIVATED", expiry:"", startDate:"", browserLocked:true, sessionExpires:"", actionsUsed:0, maxActionsPerSession:0, clientStatus:"ONLINE", lastHealthSeen:"", lastSeen:"", securityAlerts:0, healthErrors:0, systemStatus:"ACTIVE", features:{FOLLOW:true,FRIEND:true,LIKE:true,COMMENT:true,SCROLL:true}, config:{minDelaySeconds:1,maxDelaySeconds:60,forceDelaySeconds:0,maxActionsPerSession:0}, updatedAt:0 };
 const _0x009 = 60 * 1000;
 const _0x00a = 15000;
 const _0x00b = 8000;
@@ -195,7 +195,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), features, config, policyVersion:String(p.policyVersion || "11.5.7"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.0"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -1070,10 +1070,14 @@ function _0x03f() {
         <div id="status" class="status">● READY</div>
 
         <div class="dashGrid">
-            <div class="dashCard"><div class="dashLabel">License</div><div class="dashValue" id="dashLicense">✓ ACTIVE</div><div class="dashMeta" id="dashExpiry">License verified</div></div>
+            <div class="dashCard"><div class="dashLabel">License</div><div class="dashValue" id="dashLicense">✓ ACTIVE</div><div class="dashMeta" id="dashLicenseMeta">License verified</div></div>
+            <div class="dashCard"><div class="dashLabel">Plan</div><div class="dashValue" id="dashPlan">PRO</div><div class="dashMeta" id="dashPlanMeta">Server entitlement</div></div>
             <div class="dashCard"><div class="dashLabel">Browser</div><div class="dashValue" id="dashBrowser">✓ LOCKED</div><div class="dashMeta" id="dashBrowserMeta">Loading...</div></div>
+            <div class="dashCard"><div class="dashLabel">Expiry</div><div class="dashValue" id="dashExpiry">—</div><div class="dashMeta" id="dashExpiryMeta">—</div></div>
             <div class="dashCard"><div class="dashLabel">Client Health</div><div class="dashValue" id="dashHealth"><span class="dot"></span>ONLINE</div><div class="dashMeta" id="dashHealthMeta">Watchdog ready</div></div>
+            <div class="dashCard"><div class="dashLabel">Quota</div><div class="dashValue" id="dashQuota">0 / ∞</div><div class="dashMeta" id="dashQuotaMeta">Server action quota</div></div>
             <div class="dashCard"><div class="dashLabel">Integrity</div><div class="dashValue" id="dashIntegrity">CHECKING</div><div class="dashMeta" id="dashIntegrityMeta">Runtime verification</div></div>
+            <div class="dashCard"><div class="dashLabel">Server</div><div class="dashValue" id="dashServer">ACTIVE</div><div class="dashMeta" id="dashServerMeta">Policy sync</div></div>
             <div class="dashCard wide"><div class="dashLabel">Live Overview</div><div class="dashValue" id="dashOverview">0 actions • 0 recovery</div><div class="dashMeta" id="dashOverviewMeta">Activity NORMAL</div></div>
         </div>
 
@@ -1204,7 +1208,7 @@ function _0x03f() {
                     <button id="securityCheck">🔍 CHECK</button>
                     <button id="securityLogBtn">📋 LOG</button>
                     <button id="securityPauseBtn">⏸ PAUSE</button>
-                    <button id="securityEmergencyBtn">🛑 STOP</button>
+                    <button id="securityEmergencyBtn">🛑 STOP</button><button id="securityRecoverBtn">♻ RECOVER</button>
                 </div>
 
                 <div id="securityLog" class="securityLog"></div>
@@ -1275,6 +1279,7 @@ function _0x03f() {
     const securityLogBtn = $("securityLogBtn");
     const securityPauseBtn = $("securityPauseBtn");
     const securityEmergencyBtn = $("securityEmergencyBtn");
+    const securityRecoverBtn = $("securityRecoverBtn");
     const securityLogBox = $("securityLog");
     const updateHead = $("updateHead");
     const updateBody = $("updateBody");
@@ -1382,7 +1387,15 @@ function _0x03f() {
     }
 
     const dashLicense = $("dashLicense");
+    const dashLicenseMeta = $("dashLicenseMeta");
+    const dashPlan = $("dashPlan");
+    const dashPlanMeta = $("dashPlanMeta");
     const dashExpiry = $("dashExpiry");
+    const dashExpiryMeta = $("dashExpiryMeta");
+    const dashQuota = $("dashQuota");
+    const dashQuotaMeta = $("dashQuotaMeta");
+    const dashServer = $("dashServer");
+    const dashServerMeta = $("dashServerMeta");
     const dashBrowser = $("dashBrowser");
     const dashBrowserMeta = $("dashBrowserMeta");
     const dashHealth = $("dashHealth");
@@ -1398,23 +1411,39 @@ function _0x03f() {
             const activity = String(securityActivityState || "NORMAL");
             const integrity = String(securityIntegrityState || "UNKNOWN");
             const healthOnline = _0x016.lastEvent !== "";
-            dashLicense.textContent = "✓ ACTIVE";
-            dashLicense.className = "dashValue securityGood";
-            dashBrowser.textContent = "✓ LOCKED";
-            dashBrowser.className = "dashValue securityGood";
+            const planText = String(op2pServerPolicy.plan || "PRO");
+            const licStatus = String(op2pServerPolicy.status || "ACTIVE").toUpperCase();
+            const licState = String(op2pServerPolicy.licenseState || "ACTIVATED").toUpperCase();
+            const expiry = String(op2pServerPolicy.expiry || "").trim();
+            const maxQuota = Number(op2pServerPolicy.maxActionsPerSession || op2pServerPolicy.config?.maxActionsPerSession || 0);
+            const usedQuota = Number(op2pServerPolicy.actionsUsed || 0);
+            dashLicense.textContent = (licStatus === "ACTIVE" ? "✓ " : "⚠ ") + licStatus;
+            dashLicense.className = "dashValue " + (licStatus === "ACTIVE" ? "securityGood" : "securityBad");
+            dashLicenseMeta.textContent = licState + (op2pServerPolicy.customer ? " • " + op2pServerPolicy.customer : "");
+            dashPlan.textContent = planText;
+            dashPlan.className = "dashValue securityGood";
+            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.6.0");
+            dashBrowser.textContent = op2pServerPolicy.browserLocked ? "✓ LOCKED" : "⚠ UNBOUND";
+            dashBrowser.className = "dashValue " + (op2pServerPolicy.browserLocked ? "securityGood" : "securityWatch");
             dashBrowserMeta.textContent = _0x015.browser + " " + _0x015.version;
-            dashExpiry.textContent = "Client v" + _0x007;
-            dashHealth.innerHTML = '<span class="dot"></span>' + (healthOnline ? "ONLINE" : "READY");
+            dashExpiry.textContent = expiry || "—";
+            dashExpiryMeta.textContent = expiry ? "Session " + (op2pServerPolicy.sessionExpires || "—") : "Expiry unavailable";
+            dashHealth.innerHTML = '<span class="dot"></span>' + (healthOnline ? String(op2pServerPolicy.clientStatus || "ONLINE") : "READY");
             dashHealthMeta.textContent = "Recovery " + Number(_0x016.recoveryCount || 0) + " • " + (_0x016.lastEvent || "INIT");
+            dashQuota.textContent = maxQuota > 0 ? (usedQuota + " / " + maxQuota) : (usedQuota + " / ∞");
+            dashQuota.className = "dashValue " + (maxQuota > 0 && usedQuota >= maxQuota ? "securityBad" : "securityGood");
+            dashQuotaMeta.textContent = maxQuota > 0 ? "Server action quota" : "Unlimited by plan";
             dashIntegrity.textContent = integrity === "VERIFIED" ? "✓ VERIFIED" : integrity === "TAMPER" ? "⚠ TAMPER" : integrity;
             dashIntegrity.className = "dashValue " + (integrity === "VERIFIED" ? "securityGood" : integrity === "TAMPER" ? "securityBad" : "securityWatch");
             dashIntegrityMeta.textContent = "Last check " + (securityLastCheck ? new Date(securityLastCheck).toLocaleTimeString() : "—");
+            dashServer.textContent = String(op2pServerPolicy.systemStatus || "ACTIVE");
+            dashServer.className = "dashValue " + (String(op2pServerPolicy.systemStatus || "ACTIVE") === "ACTIVE" ? "securityGood" : "securityBad");
+            dashServerMeta.textContent = "Last health " + (op2pServerPolicy.lastHealthSeen || "—");
             dashOverview.textContent = statsTotal() + " actions • " + Number(_0x016.recoveryCount || 0) + " recovery";
-            dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE");
+            dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE") + (op2pServerPolicy.securityAlerts ? " • alerts " + op2pServerPolicy.securityAlerts : "");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
-            const planText = String(op2pServerPolicy.plan || "PRO");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.5.7 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.6.0 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
@@ -1557,6 +1586,17 @@ function _0x03f() {
         status.textContent = "EMERGENCY STOP";
         status.style.color = "#fb7185";
         window.op2pSecurityRefresh();
+    };
+
+    securityRecoverBtn.onclick = async () => {
+        if (op2pSecurityBlocked()) { status.textContent = "SERVER SECURITY LOCK"; status.style.color = "#fb7185"; return; }
+        _0x031();
+        const okPolicy = await op2pLoadServerPolicy(true);
+        const okHeartbeat = await _0x041(false);
+        status.textContent = (okPolicy || okHeartbeat) ? "RECOVERY CHECKED" : "RECOVERY RETRY";
+        status.style.color = (okPolicy || okHeartbeat) ? "#4ade80" : "#facc15";
+        window.op2pSecurityRefresh();
+        renderPremiumDashboard();
     };
 
     document.addEventListener("keydown", event => {
