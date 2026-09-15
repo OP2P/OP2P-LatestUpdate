@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.5.6
+// @version      11.5.7
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -529,7 +529,7 @@ const _0x027 =
     + _0x01f
     + "|LICENSE|BROWSER|SECURITY";
 
-const _0x028 = "75e953637620463f1cb562d2518b4f24bb5f02bd9755c7a266af34e93aef0717";
+const _0x028 = "8adb5fb47ceb62450fb082fde5711662fefca14d9faed96a0d70cd08d4f223f4";
 
 let securityPaused = false;
 let securityActionTimes = [];
