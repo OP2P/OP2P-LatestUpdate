@@ -1083,6 +1083,9 @@ function _0x03f() {
         textarea{height:60px;resize:vertical;}
         .settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
         .settingsCell .label{margin-top:0;}
+        .autoRefreshRow{display:flex;align-items:center;gap:6px;min-height:26px;cursor:pointer;}
+        .autoRefreshRow input[type="checkbox"]{width:13px;height:13px;min-width:13px;margin:0;padding:0;flex:0 0 13px;accent-color:#00ff88;}
+        .autoRefreshText{font-size:8px;line-height:1.1;color:#fff;white-space:nowrap;}
         .infoRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:5px;}
         .info{padding:5px;background:#1b1b1b;border-radius:5px;color:#aaa;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .info b{color:#fff;}
@@ -1200,9 +1203,9 @@ function _0x03f() {
                 </div>
                 <div class="settingsCell">
                     <div class="label">AUTO REFRESH</div>
-                    <label style="display:flex;align-items:center;gap:10px;min-height:40px;cursor:pointer">
+                    <label class="autoRefreshRow" title="Refresh Facebook every 15 minutes when OP2P is idle">
                         <input id="autoRefresh" type="checkbox" checked>
-                        <span>15 MIN WHEN IDLE</span>
+                        <span class="autoRefreshText">15 MIN • IDLE</span>
                     </label>
                 </div>
             </div>
