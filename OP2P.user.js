@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.5.3
+// @version      11.5.4
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.5.3 | Production Hardening | Server-authorized actions | Core baseline preserved */
+/* OP2P Secure Distribution V11.5.4 | Production Hardening | Server-authorized actions | Integrity baseline aligned */
 (() => {
 "use strict";
 
@@ -35,10 +35,10 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.5.3";
+const _0x007 = "11.5.4";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_5_2";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_5_4";
 let op2pServerPolicy = { plan:"PRO", features:{FOLLOW:true,FRIEND:true,LIKE:true,COMMENT:true,SCROLL:true}, config:{minDelaySeconds:1,maxDelaySeconds:60,forceDelaySeconds:0,maxActionsPerSession:0}, updatedAt:0 };
 const _0x009 = 60 * 1000;
 const _0x00a = 15000;
@@ -195,7 +195,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), features, config, policyVersion:String(p.policyVersion || "11.5.3"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), features, config, policyVersion:String(p.policyVersion || "11.5.4"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -529,7 +529,7 @@ const _0x027 =
     + _0x01f
     + "|LICENSE|BROWSER|SECURITY";
 
-const _0x028 = "8adb5fb47ceb62450fb082fde5711662fefca14d9faed96a0d70cd08d4f223f4";
+const _0x028 = "82d06ce86eeef7d8983e96ad02fdfcdae76cfc4f83b68e13c24207ba50138f65";
 
 let securityPaused = false;
 let securityActionTimes = [];
