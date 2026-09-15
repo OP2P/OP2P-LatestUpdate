@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.4.4
+// @version      11.4.5
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.4.4";
+const _0x007 = "11.4.5";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const _0x009 = 60 * 1000;
@@ -289,10 +289,9 @@ async function _0x01c() {
     let lastValidTs = Number(await _0x00e(_0x005, "0")) || 0;
     const now = Date.now();
 
-    
-    if (storedKey && (now - lastValidTs < _0x006)) {
-        return true;
-    }
+    // V11.4.5 SECURITY FIX:
+    // Startup MUST contact the server. Do not allow the local 15-minute cache
+    // to bypass REVOKE / LOCK / SUSPEND / EXPIRED status after page refresh.
 
     let key = storedKey;
     const isFirstTime = !storedKey;
@@ -386,7 +385,8 @@ async function _0x01c() {
         if (err === "LICENSE_REVOKED") {
             await _0x012();
             void _0x00f(_0x005, "0");
-            alert("OP2P: License telah direvoke.");
+            op2pSecurityHardStop("LICENSE_REVOKED");
+            try { alert("OP2P: License telah direvoke."); } catch(e) {}
             return false;
         }
 
@@ -979,7 +979,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.1 • PREMIUM</span>
+            <span class="brandBadge">V11.4.4 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1090,7 +1090,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.3.3</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.4.4</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -2023,6 +2023,12 @@ let op2pV6Locked = false;
 function op2pSecurityHardStop(reason = "SECURITY_LOCK") {
     const wasLocked = op2pV6Locked;
     op2pV6Locked = true;
+
+    // Remove the visible OP2P UI immediately when access is revoked/locked.
+    try {
+        const host = document.getElementById(HOST_ID);
+        if (host) host.remove();
+    } catch(e) {}
     try { clearInterval(op2pHealthHeartbeatTimer); } catch(e) {}
     if (!wasLocked) {
         try { _0x019("SECURITY_LOCKED", String(reason || "SECURITY_LOCK"), "ERROR").catch(()=>{}); } catch(e) {}
