@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.4.7
+// @version      11.5.0
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
@@ -35,9 +35,11 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.4.7";
+const _0x007 = "11.5.0";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_5";
+let op2pServerPolicy = { plan:"PRO", features:{FOLLOW:true,FRIEND:true,LIKE:true,COMMENT:true,SCROLL:true}, config:{minDelaySeconds:1,maxDelaySeconds:60,forceDelaySeconds:0,maxActionsPerSession:0}, updatedAt:0 };
 const _0x009 = 60 * 1000;
 const _0x00a = 15000;
 const _0x00b = 8000;
@@ -172,6 +174,78 @@ function _0x018(event, detail, severity="INFO") {
     _0x016.lastEvent=item.event; _0x016.lastDetail=item.detail;
     return item;
 }
+
+function op2pNormalizePolicy(policy) {
+    const p = policy && typeof policy === "object" ? policy : {};
+    const srcFeatures = p.features && typeof p.features === "object" ? p.features : {};
+    const srcConfig = p.config && typeof p.config === "object" ? p.config : {};
+    const features = {
+        FOLLOW: srcFeatures.FOLLOW !== false,
+        FRIEND: srcFeatures.FRIEND !== false,
+        LIKE: srcFeatures.LIKE !== false,
+        COMMENT: srcFeatures.COMMENT !== false,
+        SCROLL: srcFeatures.SCROLL !== false
+    };
+    const n = (v, d) => { const x = Number(v); return Number.isFinite(x) ? x : d; };
+    const config = {
+        minDelaySeconds: Math.max(0.1, n(srcConfig.minDelaySeconds, 1)),
+        maxDelaySeconds: Math.max(0.1, n(srcConfig.maxDelaySeconds, 60)),
+        forceDelaySeconds: Math.max(0, n(srcConfig.forceDelaySeconds, 0)),
+        maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
+    };
+    if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
+    return { plan:String(p.plan || "PRO"), features, config, policyVersion:String(p.policyVersion || "11.5"), updatedAt:Number(p.updatedAt || Date.now()) };
+}
+
+async function op2pLoadServerPolicy(showAlert=false) {
+    try {
+        const key = String(await _0x010() || "").trim();
+        if (!key) return false;
+        const res = await _0x01a("security_policy", key);
+        if (res && res.ok === true) {
+            op2pServerPolicy = op2pNormalizePolicy(res);
+            try { localStorage.setItem(OP2P_POLICY_STORAGE, JSON.stringify(op2pServerPolicy)); } catch(e) {}
+            if (typeof window.op2pPolicyRefresh === "function") window.op2pPolicyRefresh();
+            return true;
+        }
+        return false;
+    } catch(e) {
+        if (showAlert) { try { alert("OP2P: gagal mendapatkan server policy."); } catch(_) {} }
+        return false;
+    }
+}
+
+function op2pFeatureAllowed(feature) {
+    const f = String(feature || "").toUpperCase();
+    return !!(op2pServerPolicy && op2pServerPolicy.features && op2pServerPolicy.features[f]);
+}
+
+function op2pModeAllowed(mode) {
+    const m = String(mode || "").toUpperCase();
+    if (m === "BOTH") return op2pFeatureAllowed("FOLLOW") && op2pFeatureAllowed("FRIEND");
+    if (m === "F") return op2pFeatureAllowed("FOLLOW");
+    if (m === "A") return op2pFeatureAllowed("FRIEND");
+    if (m === "LIKE_FOLLOW") return op2pFeatureAllowed("LIKE") && op2pFeatureAllowed("FOLLOW");
+    if (m === "LIKE") return op2pFeatureAllowed("LIKE");
+    if (m === "COMMENT") return op2pFeatureAllowed("COMMENT");
+    if (m === "SCROLL") return op2pFeatureAllowed("SCROLL");
+    return false;
+}
+
+function op2pActionLimitReached() {
+    const max = Number(op2pServerPolicy?.config?.maxActionsPerSession || 0);
+    return max > 0 && statsTotal() >= max;
+}
+
+async function op2pRuntimeIntegrityHash() {
+    try {
+        const critical = [typeof _0x01a === "function" ? _0x01a.toString() : "", typeof _0x01c === "function" ? _0x01c.toString() : "", typeof op2pSecurityHardStop === "function" ? op2pSecurityHardStop.toString() : "", typeof _0x041 === "function" ? _0x041.toString() : "", typeof _0x045 === "function" ? _0x045.toString() : ""].join("\n/*OP2P*/\n");
+        if (!window.crypto?.subtle) return "";
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(critical));
+        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    } catch(e) { return ""; }
+}
+
 async function _0x019(event, detail, severity="INFO") {
     const now=Date.now();
     const item=_0x018(event,detail,severity);
@@ -180,7 +254,7 @@ async function _0x019(event, detail, severity="INFO") {
     try {
         const key=String(await _0x010()||"").trim();
         if(!key) return;
-        const res=await _0x01a("client_health", key, {health_event:item.event,health_detail:item.detail,health_severity:item.severity});
+        const res=await _0x01a("client_health", key, {health_event:item.event,health_detail:item.detail,health_severity:item.severity,runtime_integrity_hash:await op2pRuntimeIntegrityHash(),plan:op2pServerPolicy.plan});
         if(res && res.ok!==true && res.error) _0x016.lastDetail="Health send: "+res.error;
     } catch(e) {}
 }
@@ -289,7 +363,7 @@ async function _0x01c() {
     let lastValidTs = Number(await _0x00e(_0x005, "0")) || 0;
     const now = Date.now();
 
-    // V11.4.7 SECURITY FIX:
+    // V11.5.0 SECURITY FIX:
     // Startup MUST contact the server. Do not allow the local 15-minute cache
     // to bypass REVOKE / LOCK / SUSPEND / EXPIRED status after page refresh.
 
@@ -986,7 +1060,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.4.7 • PREMIUM</span>
+            <span class="brandBadge">V11.5.0 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1097,7 +1171,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.4.7</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.5.0</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -1291,6 +1365,9 @@ function _0x03f() {
             dashOverview.textContent = statsTotal() + " actions • " + Number(_0x016.recoveryCount || 0) + " recovery";
             dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
+            const planText = String(op2pServerPolicy.plan || "PRO");
+            const planBadge = shadow.querySelector(".brandBadge");
+            if (planBadge) planBadge.textContent = "V11.5.0 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
@@ -1322,6 +1399,17 @@ function _0x03f() {
     updateCurrent.textContent = _0x007;
     updateOpenBtn.disabled = true;
     setTimeout(() => checkForUpdates(false), 1200);
+
+    function renderServerPolicyUi() {
+        try {
+            Object.entries(modeButtons).forEach(([mode, button]) => {
+                button.style.opacity = op2pModeAllowed(mode) ? "1" : "0.38";
+                button.title = op2pModeAllowed(mode) ? ("Enabled • " + String(op2pServerPolicy.plan || "PRO")) : "Disabled by server plan";
+            });
+            renderPremiumDashboard();
+        } catch(e) {}
+    }
+    window.op2pPolicyRefresh = renderServerPolicyUi;
 
     function renderStats() {
         statFollow.textContent = String(op2pStats.follow);
@@ -1532,6 +1620,7 @@ function _0x03f() {
 
     function toggleMode(mode) {
         if (running) return;
+        if (!op2pModeAllowed(mode)) { status.textContent = "FEATURE DISABLED BY PLAN"; status.style.color = "#fb7185"; return; }
         if (mode === "BOTH") {
             const enable = !selectedModes.has("BOTH");
             selectedModes.delete("F");
@@ -1845,6 +1934,8 @@ function _0x03f() {
         for (const mode of order) {
             if (op2pSecurityBlocked()) break;
             if (!selectedModes.has(mode) || !running) continue;
+            if (!op2pModeAllowed(mode)) { _0x018("FEATURE_BLOCKED", mode, "WARNING"); continue; }
+            if (op2pActionLimitReached()) { status.textContent = "SERVER LIMIT REACHED"; status.style.color = "#fb7185"; running=false; break; }
 
             if (mode === "BOTH") {
                 const followed = await followCurrent();
@@ -1894,7 +1985,14 @@ function _0x03f() {
 
     function getDelay() {
         let seconds = Number(delayInput.value);
-        if (!Number.isFinite(seconds) || seconds <= 0) { seconds = 5; delayInput.value = "5"; }
+        const cfg = op2pServerPolicy.config || {};
+        const min = Math.max(0.1, Number(cfg.minDelaySeconds || 1));
+        const max = Math.max(min, Number(cfg.maxDelaySeconds || 60));
+        const forced = Math.max(0, Number(cfg.forceDelaySeconds || 0));
+        if (!Number.isFinite(seconds) || seconds <= 0) seconds = 5;
+        seconds = Math.max(min, Math.min(max, seconds));
+        if (forced > 0) seconds = Math.max(seconds, forced);
+        delayInput.value = String(seconds);
         return seconds * 1000;
     }
 
@@ -2103,7 +2201,7 @@ async function _0x045() {
         const key = String(await _0x010() || "").trim();
         if (!key) return false;
         const res = await _0x01a("security_policy", key);
-        if (res && res.ok === true) return true;
+        if (res && res.ok === true) { op2pServerPolicy = op2pNormalizePolicy(res); try { localStorage.setItem(OP2P_POLICY_STORAGE, JSON.stringify(op2pServerPolicy)); } catch(e) {} if (typeof window.op2pPolicyRefresh === "function") window.op2pPolicyRefresh(); return true; }
         const err = String((res && res.error) || "");
         if (err === "SYSTEM_KILLED" || err === "CLIENT_UPDATE_REQUIRED" || err === "LICENSE_MANUALLY_LOCKED" || err === "LICENSE_INACTIVE" || err === "BROWSER_LOCKED" || err === "LICENSE_REVOKED" || err === "LICENSE_EXPIRED") {
             op2pSecurityHardStop(err);
@@ -2145,6 +2243,6 @@ function _0x044() {
     );
 }
 
-_0x01c().then(ok => { if (ok) { init(); _0x044(); _0x042(); _0x043(); _0x046(); _0x019("CLIENT_ONLINE", "Client started").catch(()=>{}); } });
+_0x01c().then(async ok => { if (ok) { try { const cachedPolicy = localStorage.getItem(OP2P_POLICY_STORAGE); if (cachedPolicy) op2pServerPolicy = op2pNormalizePolicy(JSON.parse(cachedPolicy)); } catch(e) {} init(); renderServerPolicyUi?.(); await op2pLoadServerPolicy(false); _0x044(); _0x042(); _0x043(); _0x046(); _0x019("CLIENT_ONLINE", "Client started").catch(()=>{}); } });
 
 })();
