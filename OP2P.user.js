@@ -979,7 +979,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.4.4 • PREMIUM</span>
+            <span class="brandBadge">V11.4.5 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1090,7 +1090,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.4.4</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.4.5</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
