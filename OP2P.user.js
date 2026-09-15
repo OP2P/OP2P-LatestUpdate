@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.3.2
+// @version      11.3.3
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
@@ -33,7 +33,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.3.2";
+const _0x007 = "11.3.3";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const _0x009 = 5 * 60 * 1000;
@@ -41,6 +41,7 @@ const _0x00a = 15000;
 const _0x00b = 8000;
 
 
+// V11.3.3 FIREFOX PERSISTENCE FIX: prefer async GM storage, then legacy GM sync, then localStorage.
 function _0x00c(key, fallback = "") {
     try {
         if (typeof GM_getValue === "function") {
@@ -68,33 +69,65 @@ function _0x00d(key, value) {
 }
 
 async function _0x00e(key, fallback = "") {
-    return _0x00c(key, fallback);
+    try {
+        if (typeof GM !== "undefined" && typeof GM.getValue === "function") {
+            const val = await GM.getValue(key, fallback);
+            if (val !== null && val !== undefined && val !== "") return String(val);
+        }
+    } catch(e) {}
+    try {
+        if (typeof GM_getValue === "function") {
+            const val = GM_getValue(key, fallback);
+            if (val !== null && val !== undefined && val !== "") return String(val);
+        }
+    } catch(e) {}
+    try {
+        const v = localStorage.getItem(key);
+        if (v !== null && v !== undefined && v !== "") return String(v);
+    } catch(e) {}
+    return fallback;
 }
 
 async function _0x00f(key, value) {
-    _0x00d(key, value);
-    return true;
+    const val = String(value ?? "");
+    let saved = false;
+    try {
+        if (typeof GM !== "undefined" && typeof GM.setValue === "function") {
+            await GM.setValue(key, val);
+            saved = true;
+        }
+    } catch(e) {}
+    if (!saved) {
+        try {
+            if (typeof GM_setValue === "function") {
+                GM_setValue(key, val);
+                saved = true;
+            }
+        } catch(e) {}
+    }
+    try { localStorage.setItem(key, val); saved = true; } catch(e) {}
+    return saved;
 }
 
 async function _0x010() {
-    return String(_0x00c(_0x002, "") || "").trim();
+    return String(await _0x00e(_0x002, "") || "").trim();
 }
 
 async function _0x011(key) {
     const val = String(key || "").trim();
-    _0x00d(_0x002, val);
+    await _0x00f(_0x002, val);
 }
 
 async function _0x012() {
-    try { if (typeof GM_setValue === "function") GM_setValue(_0x002, ""); } catch(e) {}
+    try { await _0x00f(_0x002, ""); } catch(e) {}
     try { localStorage.removeItem(_0x002); } catch(e) {}
 }
 
 async function _0x013() {
-    let id = String(_0x00c(_0x003, "") || "").trim();
+    let id = String(await _0x00e(_0x003, "") || "").trim();
     if (id) return id;
     id = "BR-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + "-" + Math.random().toString(36).slice(2);
-    _0x00d(_0x003, id);
+    await _0x00f(_0x003, id);
     return id;
 }
 
@@ -150,7 +183,7 @@ async function _0x019(event, detail, severity="INFO") {
 function _0x01a(action, key, extraParams = {}) {
     return new Promise(async (resolve, reject) => {
         const browserId = await _0x013();
-        const sessionId = String(_0x00c(_0x004, "") || "").trim();
+        const sessionId = String(await _0x00e(_0x004, "") || "").trim();
         const ts = Date.now();
         const nonce = "N-" + ts.toString(36) + "-" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
         const url = _0x001 + "?action=" + encodeURIComponent(action) + "&key=" + encodeURIComponent(key) + "&browser_id=" + encodeURIComponent(browserId) + "&session_id=" + encodeURIComponent(sessionId) + "&ts=" + encodeURIComponent(ts) + "&nonce=" + encodeURIComponent(nonce) + "&browser_type=" + encodeURIComponent(_0x015.browser) + "&browser_version=" + encodeURIComponent(_0x015.version) + "&os=" + encodeURIComponent(_0x015.os) + "&device_type=" + encodeURIComponent(_0x015.deviceType) + "&client_version=" + encodeURIComponent(_0x007) + "&_=" + Date.now();
@@ -176,7 +209,7 @@ function _0x01a(action, key, extraParams = {}) {
             if (!data) return false;
             data._browserId = browserId;
             if (data.sessionId) {
-                _0x00d(_0x004, String(data.sessionId));
+                void _0x00f(_0x004, String(data.sessionId));
             }
             finish(resolve, data);
             return true;
@@ -248,7 +281,7 @@ async function _0x01b(res, key) {
 
 async function _0x01c() {
     let storedKey = await _0x010();
-    let lastValidTs = Number(_0x00c(_0x005, "0")) || 0;
+    let lastValidTs = Number(await _0x00e(_0x005, "0")) || 0;
     const now = Date.now();
 
     
@@ -287,7 +320,7 @@ async function _0x01c() {
 
         if (res && res.ok === true && res.status === "ACTIVE") {
             await _0x011(key);
-            _0x00d(_0x005, String(Date.now()));
+            void _0x00f(_0x005, String(Date.now()));
 
             if (isFirstTime) {
                 alert("✓ OP2P: License Key berjaya dimasukkan dan disahkan!");
@@ -305,7 +338,7 @@ async function _0x01c() {
                 const reauth = await _0x01a("activate", key);
                 if (reauth && reauth.ok === true && reauth.status === "ACTIVE") {
                     await _0x011(key);
-                    _0x00d(_0x005, String(Date.now()));
+                    void _0x00f(_0x005, String(Date.now()));
                     return true;
                 }
             } catch(e) {}
@@ -319,7 +352,7 @@ async function _0x01c() {
             );
             if (resetChoice) {
                 await _0x012();
-                _0x00d(_0x005, "0");
+                void _0x00f(_0x005, "0");
                 location.reload();
             }
             return false;
@@ -339,7 +372,7 @@ async function _0x01c() {
             const resetChoice = confirm("OP2P: License key tidak sah.\n\nKlik OK untuk masukkan semula.");
             if (resetChoice) {
                 await _0x012();
-                _0x00d(_0x005, "0");
+                void _0x00f(_0x005, "0");
                 location.reload();
             }
             return false;
@@ -347,7 +380,7 @@ async function _0x01c() {
 
         if (err === "LICENSE_REVOKED") {
             await _0x012();
-            _0x00d(_0x005, "0");
+            void _0x00f(_0x005, "0");
             alert("OP2P: License telah direvoke.");
             return false;
         }
@@ -1052,7 +1085,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.3.2</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.3.3</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -1972,7 +2005,7 @@ async function _0x041(showAlert = false) {
 
         const res = await _0x01a("heartbeat", key);
         if (res && res.ok === true && res.status === "ACTIVE") {
-            _0x00d(_0x005, String(Date.now()));
+            void _0x00f(_0x005, String(Date.now()));
             return true;
         }
 
