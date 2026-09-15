@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.3.3
+// @version      11.3.4
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
@@ -13,6 +13,8 @@
 // @grant        GM.xmlHttpRequest
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM.getValue
+// @grant        GM.setValue
 // @connect      script.google.com
 // @connect      script.googleusercontent.com
 // ==/UserScript==
@@ -33,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.3.3";
+const _0x007 = "11.3.4";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const _0x009 = 5 * 60 * 1000;
@@ -41,7 +43,7 @@ const _0x00a = 15000;
 const _0x00b = 8000;
 
 
-// V11.3.3 FIREFOX PERSISTENCE FIX: prefer async GM storage, then legacy GM sync, then localStorage.
+// V11.3.4 FIREFOX PERSISTENCE FIX: explicit modern GM.getValue/GM.setValue bridge for Greasemonkey 4+.
 function _0x00c(key, fallback = "") {
     try {
         if (typeof GM_getValue === "function") {
@@ -69,18 +71,21 @@ function _0x00d(key, value) {
 }
 
 async function _0x00e(key, fallback = "") {
+    // Primary: modern Greasemonkey 4+ async storage.
     try {
         if (typeof GM !== "undefined" && typeof GM.getValue === "function") {
             const val = await GM.getValue(key, fallback);
             if (val !== null && val !== undefined && val !== "") return String(val);
         }
     } catch(e) {}
+    // Secondary: legacy GM synchronous storage.
     try {
         if (typeof GM_getValue === "function") {
             const val = GM_getValue(key, fallback);
             if (val !== null && val !== undefined && val !== "") return String(val);
         }
     } catch(e) {}
+    // Last resort: page localStorage.
     try {
         const v = localStorage.getItem(key);
         if (v !== null && v !== undefined && v !== "") return String(v);
@@ -313,8 +318,8 @@ async function _0x01c() {
         
         if (res && res.error === "BROWSER_RESET_REQUIRED") {
             const newBrowserId = "BR-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + "-" + Math.random().toString(36).slice(2);
-            _0x00d(_0x003, newBrowserId);
-            _0x00d(_0x004, "");
+            await _0x00f(_0x003, newBrowserId);
+            await _0x00f(_0x004, "");
             res = await _0x01a("activate", key);
         }
 
