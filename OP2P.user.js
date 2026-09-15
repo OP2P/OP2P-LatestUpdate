@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.6.2
+// @version      11.7.0
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.6.2 | Production Hardening | Fresh server policy | Integrity baseline aligned */
+/* OP2P Secure Distribution V11.7.0 | Production Hardening | Idle auto-refresh | Integrity baseline aligned */
 (() => {
 "use strict";
 
@@ -35,10 +35,13 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.6.2";
+const _0x007 = "11.7.0";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_6_0";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_0";
+const OP2P_AUTO_REFRESH_MS = 15 * 60 * 1000;
+const OP2P_AUTO_REFRESH_CHECK_MS = 30 * 1000;
+const OP2P_AUTO_REFRESH_STATE = "OP2P_AUTO_REFRESH_STATE_V1";
 let op2pServerPolicy = { plan:"PRO", customer:"", status:"ACTIVE", licenseState:"ACTIVATED", expiry:"", startDate:"", browserLocked:true, sessionExpires:"", actionsUsed:0, maxActionsPerSession:0, clientStatus:"ONLINE", lastHealthSeen:"", lastSeen:"", securityAlerts:0, healthErrors:0, systemStatus:"ACTIVE", features:{FOLLOW:true,FRIEND:true,LIKE:true,COMMENT:true,SCROLL:true}, config:{minDelaySeconds:1,maxDelaySeconds:60,forceDelaySeconds:0,maxActionsPerSession:0}, updatedAt:0 };
 const _0x009 = 60 * 1000;
 const _0x00a = 15000;
@@ -195,7 +198,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.2"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.1"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -876,7 +879,7 @@ async function _0x039() {
 }
 
 const _0x03a = "OP2P_SETTINGS_V1";
-const defaultSettings = { scrollStep: "80", scrollWait: "1", delay: "5", runMode: "loop", minutes: "1" };
+const defaultSettings = { scrollStep: "80", scrollWait: "1", delay: "5", runMode: "loop", minutes: "1", autoRefresh: "true" };
 
 async function _0x03b() {
     try {
@@ -901,7 +904,8 @@ async function _0x03d() {
             scrollWait: String(scrollWaitInput.value || defaultSettings.scrollWait),
             delay: String(delayInput.value || defaultSettings.delay),
             runMode: String(runMode.value || defaultSettings.runMode),
-            minutes: String(minutesInput.value || defaultSettings.minutes)
+            minutes: String(minutesInput.value || defaultSettings.minutes),
+            autoRefresh: autoRefreshCheck ? String(!!autoRefreshCheck.checked) : defaultSettings.autoRefresh
         };
         await _0x00f(_0x03a, JSON.stringify(data));
     } catch (e) {}
@@ -915,6 +919,61 @@ async function _0x03e() {
     runMode.value = settings.runMode;
     minutesInput.value = settings.minutes;
     durationBox.style.display = runMode.value === "minutes" ? "block" : "none";
+    if (autoRefreshCheck) autoRefreshCheck.checked = String(settings.autoRefresh).toLowerCase() !== "false";
+}
+
+function op2pIsBusyForRefresh() {
+    return !!(_0x016.running || _0x016.actionInProgress || _0x016.timerActive || running);
+}
+
+function op2pPersistRefreshState() {
+    try {
+        const state = {
+            selectedModes: [...selectedModes],
+            comments: String((document.getElementById("comments") || {}).value || ""),
+            panelVisible: !!(document.getElementById(HOST_ID) && document.getElementById(HOST_ID).style.display !== "none"),
+            savedAt: Date.now()
+        };
+        sessionStorage.setItem(OP2P_AUTO_REFRESH_STATE, JSON.stringify(state));
+    } catch (e) {}
+}
+
+function op2pRestoreRefreshState() {
+    try {
+        const raw = sessionStorage.getItem(OP2P_AUTO_REFRESH_STATE);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        if (Array.isArray(state.selectedModes)) {
+            selectedModes.clear();
+            state.selectedModes.forEach(mode => {
+                if (typeof mode === "string" && op2pModeAllowed(mode)) selectedModes.add(mode);
+            });
+        }
+        const commentsBox = document.getElementById("comments");
+        if (typeof state.comments === "string" && commentsBox) commentsBox.value = state.comments;
+        sessionStorage.removeItem(OP2P_AUTO_REFRESH_STATE);
+    } catch (e) {}
+}
+
+function op2pDoIdleRefresh() {
+    if (op2pSecurityBlocked() || !autoRefreshCheck || !autoRefreshCheck.checked) {
+        op2pScheduleAutoRefresh();
+        return;
+    }
+    if (op2pIsBusyForRefresh()) {
+        op2pAutoRefreshTimer = setTimeout(op2pDoIdleRefresh, OP2P_AUTO_REFRESH_CHECK_MS);
+        return;
+    }
+    op2pPersistRefreshState();
+    try { _0x019("AUTO_REFRESH", "Refreshing Facebook browser after 15 minutes of idle time").catch(() => {}); } catch (e) {}
+    setTimeout(() => { try { location.reload(); } catch (e) {} }, 250);
+}
+
+function op2pScheduleAutoRefresh() {
+    clearTimeout(op2pAutoRefreshTimer);
+    if (!autoRefreshCheck || !autoRefreshCheck.checked || op2pSecurityBlocked()) return;
+    op2pAutoRefreshDeadline = Date.now() + OP2P_AUTO_REFRESH_MS;
+    op2pAutoRefreshTimer = setTimeout(op2pDoIdleRefresh, OP2P_AUTO_REFRESH_MS);
 }
 
 function init() {
@@ -927,7 +986,9 @@ function init() {
     }
 }
 
-let scrollStepInput, scrollWaitInput, delayInput, runMode, minutesInput, durationBox;
+let scrollStepInput, scrollWaitInput, delayInput, runMode, minutesInput, durationBox, autoRefreshCheck;
+let op2pAutoRefreshTimer = null;
+let op2pAutoRefreshDeadline = 0;
 
 function _0x03f() {
     const host = document.createElement("div");
@@ -1064,7 +1125,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.6.2 • PREMIUM</span>
+            <span class="brandBadge">V11.6.1 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1137,6 +1198,13 @@ function _0x03f() {
                         <option value="until">UNTIL STOP</option>
                     </select>
                 </div>
+                <div class="settingsCell">
+                    <div class="label">AUTO REFRESH</div>
+                    <label style="display:flex;align-items:center;gap:10px;min-height:40px;cursor:pointer">
+                        <input id="autoRefresh" type="checkbox" checked>
+                        <span>15 MIN WHEN IDLE</span>
+                    </label>
+                </div>
             </div>
             <div id="durationBox" style="display:none">
                 <div class="label">MINUTES</div>
@@ -1179,7 +1247,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.6.2</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.6.1</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -1247,6 +1315,7 @@ function _0x03f() {
     runMode = $("runMode");
     minutesInput = $("minutes");
     durationBox = $("durationBox");
+    autoRefreshCheck = $("autoRefresh");
 
     [scrollStepInput, scrollWaitInput, delayInput, minutesInput].forEach(input => {
         input.addEventListener("input", _0x03c);
@@ -1254,6 +1323,7 @@ function _0x03f() {
     });
 
     runMode.addEventListener("change", _0x03c);
+    autoRefreshCheck.addEventListener("change", () => { _0x03c(); op2pScheduleAutoRefresh(); });
 
     const statsHead = $("statsHead");
     const statsBody = $("statsBody");
@@ -1422,7 +1492,7 @@ function _0x03f() {
             dashLicenseMeta.textContent = licState + (op2pServerPolicy.customer ? " • " + op2pServerPolicy.customer : "");
             dashPlan.textContent = planText;
             dashPlan.className = "dashValue securityGood";
-            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.6.2");
+            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.6.1");
             dashBrowser.textContent = op2pServerPolicy.browserLocked ? "✓ LOCKED" : "⚠ UNBOUND";
             dashBrowser.className = "dashValue " + (op2pServerPolicy.browserLocked ? "securityGood" : "securityWatch");
             dashBrowserMeta.textContent = _0x015.browser + " " + _0x015.version;
@@ -1443,7 +1513,7 @@ function _0x03f() {
             dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE") + (op2pServerPolicy.securityAlerts ? " • alerts " + op2pServerPolicy.securityAlerts : "");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.6.2 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.6.1 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
@@ -1616,9 +1686,12 @@ function _0x03f() {
         .then(() => _0x037())
         .then(() => _0x03e())
         .then(() => {
+            op2pRestoreRefreshState();
+            refreshModes();
             renderStats();
             window.op2pSecurityRefresh();
             renderPremiumDashboard();
+            op2pScheduleAutoRefresh();
             setInterval(renderPremiumDashboard, 2000);
         });
 
@@ -2438,6 +2511,7 @@ function _0x044() {
 _0x01c().then(async ok => {
     if (!ok) return;
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_5_4"); } catch(e) {}
+    try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_7_0"); } catch(e) {}
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_6_0"); } catch(e) {}
     const freshPolicyOk = await op2pLoadServerPolicy(true);
     if (!freshPolicyOk) {
