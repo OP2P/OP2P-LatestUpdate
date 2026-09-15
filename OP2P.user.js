@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.3.4
+// @version      11.4.1
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with stable license security, audit, browser identity, health monitoring and safe recovery
@@ -35,10 +35,10 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.3.4";
+const _0x007 = "11.4.0";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const _0x009 = 5 * 60 * 1000;
+const _0x009 = 60 * 1000;
 const _0x00a = 15000;
 const _0x00b = 8000;
 
@@ -1997,7 +1997,7 @@ function _0x03f() {
 
 
 
-const _0x040 = 10 * 60 * 1000; 
+const _0x040 = 60 * 1000; 
 let op2pV6HeartbeatTimer = null;
 let op2pV6Locked = false;
 
@@ -2020,8 +2020,11 @@ async function _0x041(showAlert = false) {
             err === "BROWSER_RESET_REQUIRED" ||
             err === "BROWSER_LOCKED" ||
             err === "LICENSE_LOCKED" ||
+            err === "LICENSE_MANUALLY_LOCKED" ||
             err === "LICENSE_REVOKED" ||
-            err === "LICENSE_EXPIRED"
+            err === "LICENSE_EXPIRED" ||
+            err === "SYSTEM_KILLED" ||
+            err === "CLIENT_UPDATE_REQUIRED"
         ) {
             op2pV6Locked = true;
             try { if (typeof stop === "function") stop(); } catch(e) {}
@@ -2035,6 +2038,30 @@ async function _0x041(showAlert = false) {
     } catch(e) {
         return false;
     }
+}
+
+let op2pSecurityPolicyTimer = null;
+async function _0x045() {
+    if (op2pV6Locked) return false;
+    try {
+        const key = String(await _0x010() || "").trim();
+        if (!key) return false;
+        const res = await _0x01a("security_policy", key);
+        if (res && res.ok === true) return true;
+        const err = String((res && res.error) || "");
+        if (err === "SYSTEM_KILLED" || err === "CLIENT_UPDATE_REQUIRED" || err === "LICENSE_MANUALLY_LOCKED" || err === "BROWSER_LOCKED" || err === "LICENSE_REVOKED" || err === "LICENSE_EXPIRED") {
+            op2pV6Locked = true;
+            try { if (typeof stop === "function") stop(); } catch(e) {}
+            _0x019("SECURITY_LOCK", err, "ERROR").catch(()=>{});
+            try { alert("OP2P: Security Monitor mengunci client (" + err + ")."); } catch(e) {}
+            return false;
+        }
+    } catch(e) {}
+    return false;
+}
+function _0x046() {
+    clearInterval(op2pSecurityPolicyTimer);
+    op2pSecurityPolicyTimer = setInterval(() => _0x045().catch(()=>{}), 60 * 1000);
 }
 
 function _0x042() {
@@ -2058,6 +2085,6 @@ function _0x044() {
     );
 }
 
-_0x01c().then(ok => { if (ok) { init(); _0x044(); _0x042(); _0x043(); _0x019("CLIENT_ONLINE", "Client started").catch(()=>{}); } });
+_0x01c().then(ok => { if (ok) { init(); _0x044(); _0x042(); _0x043(); _0x046(); _0x019("CLIENT_ONLINE", "Client started").catch(()=>{}); } });
 
 })();
