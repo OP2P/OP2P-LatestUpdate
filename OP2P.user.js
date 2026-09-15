@@ -33,7 +33,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.1.0";
+const _0x007 = "11.3.0";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const _0x009 = 5 * 60 * 1000;
 const _0x00a = 15000;
@@ -1051,7 +1051,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.1.0</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.3.0</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
