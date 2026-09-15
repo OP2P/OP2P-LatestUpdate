@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.5.4 | Production Hardening | Server-authorized actions | Integrity baseline aligned */
+/* OP2P Secure Distribution V11.5.7 | Production Hardening | Server-authorized actions | Integrity baseline aligned */
 (() => {
 "use strict";
 
@@ -195,7 +195,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), features, config, policyVersion:String(p.policyVersion || "11.5.4"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), features, config, policyVersion:String(p.policyVersion || "11.5.7"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -364,7 +364,7 @@ async function _0x01c() {
     let lastValidTs = Number(await _0x00e(_0x005, "0")) || 0;
     const now = Date.now();
 
-    // V11.5.1 SECURITY FIX:
+    // V11.5.7 SECURITY FIX:
     // Startup MUST contact the server. Do not allow the local 15-minute cache
     // to bypass REVOKE / LOCK / SUSPEND / EXPIRED status after page refresh.
 
@@ -473,7 +473,7 @@ async function _0x01c() {
         }
 
         
-        // SECURITY HARDENING V11.5.1: fail closed.
+        // SECURITY HARDENING V11.5.7: fail closed.
         // Never trust a stored license when the server rejects validation.
         // This prevents offline/network-failure bypass of LOCK/SUSPEND/REVOKE/EXPIRED.
         if (err === "NETWORK_ERROR" || err === "TIMEOUT" || err === "INVALID_API_RESPONSE" || err === "LICENSE_ERROR") {
@@ -486,7 +486,7 @@ async function _0x01c() {
         return false;
 
     } catch(e) {
-        // SECURITY HARDENING V11.5.1: fail closed on unexpected validation errors.
+        // SECURITY HARDENING V11.5.7: fail closed on unexpected validation errors.
         op2pSecurityHardStop("SERVER_VALIDATION_EXCEPTION");
         alert("OP2P: Gagal semak license (" + String(e.message || e) + "). OP2P dikunci untuk keselamatan. Sila semak sambungan internet.");
         return false;
@@ -1064,7 +1064,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.5.1 • PREMIUM</span>
+            <span class="brandBadge">V11.5.7 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1175,7 +1175,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.5.1</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.5.7</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -1414,7 +1414,7 @@ function _0x03f() {
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
             const planText = String(op2pServerPolicy.plan || "PRO");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.5.0 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.5.7 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
