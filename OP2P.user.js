@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.8
+// @version      11.8.0
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.8 | Stable action core | SPA | Persistent state | Idle auto-refresh | Server activity log */
+/* OP2P Secure Distribution V11.8.0 | Stable action core | SPA | Persistent state | Idle auto-refresh | Server activity log */
 (() => {
 "use strict";
 
@@ -35,10 +35,12 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.8";
+const _0x007 = "11.8.0";
+const OP2P_BROWSER_PROOF_STORAGE = "OP2P_BROWSER_PROOF_V1";
+const OP2P_BROWSER_PROOF_LICENSE_STORAGE = "OP2P_BROWSER_PROOF_LICENSE_V1";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_8";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_8_0";
 const OP2P_AUTO_REFRESH_MS = 15 * 60 * 1000;
 const OP2P_AUTO_REFRESH_CHECK_MS = 30 * 1000;
 const OP2P_AUTO_REFRESH_STATE = "OP2P_AUTO_REFRESH_STATE_V1";
@@ -132,13 +134,80 @@ async function _0x011(key) {
 async function _0x012() {
     try { await _0x00f(_0x002, ""); } catch(e) {}
     try { localStorage.removeItem(_0x002); } catch(e) {}
+    await op2pClearProofSecret_();
+}
+
+
+function op2pRandomBytes_(count){
+    try {
+        if (!window.crypto || typeof window.crypto.getRandomValues !== "function") return null;
+        const a = new Uint8Array(count);
+        window.crypto.getRandomValues(a);
+        return a;
+    } catch(e) { return null; }
+}
+function op2pBytesToHex_(bytes){
+    return Array.from(bytes || []).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+function op2pBytesToBase64Url_(bytes){
+    try {
+        let s=""; for(const b of bytes || []) s += String.fromCharCode(b);
+        return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
+    } catch(e) { return ""; }
+}
+function op2pNewBrowserId_(){
+    const bytes=op2pRandomBytes_(24); if(!bytes) return "";
+    return "BR2-"+op2pBytesToBase64Url_(bytes);
+}
+function op2pNewNonce_(){
+    const bytes=op2pRandomBytes_(24); if(!bytes) return "";
+    return "N2-"+op2pBytesToBase64Url_(bytes);
+}
+function op2pNewProofSecret_(){
+    const bytes=op2pRandomBytes_(32); if(!bytes) return "";
+    return op2pBytesToBase64Url_(bytes);
+}
+async function op2pGetProofSecret_(license){
+    const lic=String(license||"").trim();
+    const savedLic=String(await _0x00e(OP2P_BROWSER_PROOF_LICENSE_STORAGE,"")||"").trim();
+    if(!lic || savedLic!==lic) return "";
+    return String(await _0x00e(OP2P_BROWSER_PROOF_STORAGE,"")||"").trim();
+}
+async function op2pSetProofSecret_(license,secret){
+    await _0x00f(OP2P_BROWSER_PROOF_LICENSE_STORAGE,String(license||"").trim());
+    await _0x00f(OP2P_BROWSER_PROOF_STORAGE,String(secret||"").trim());
+}
+async function op2pClearProofSecret_(){
+    try{await _0x00f(OP2P_BROWSER_PROOF_LICENSE_STORAGE,"");}catch(e){}
+    try{await _0x00f(OP2P_BROWSER_PROOF_STORAGE,"");}catch(e){}
+    try{localStorage.removeItem(OP2P_BROWSER_PROOF_LICENSE_STORAGE);}catch(e){}
+    try{localStorage.removeItem(OP2P_BROWSER_PROOF_STORAGE);}catch(e){}
+}
+function op2pCanonicalRequestString_(action,key,browserId,sessionId,ts,nonce,params){
+    const reserved=new Set(["action","key","browser_id","session_id","ts","nonce","browser_type","browser_version","os","device_type","client_version","browser_proof","browser_proof_secret","_"]);
+    const fields=[
+        ["action",action],["key",key],["browser_id",browserId],["session_id",sessionId],["ts",ts],["nonce",nonce],
+        ["browser_type",_0x015.browser],["browser_version",_0x015.version],["os",_0x015.os],["device_type",_0x015.deviceType],
+        ["client_version",_0x007]
+    ];
+    Object.keys(params||{}).filter(k=>!reserved.has(k)).sort().forEach(k=>fields.push([k,params[k]]));
+    return fields.map(([k,v])=>encodeURIComponent(String(k))+"="+encodeURIComponent(String(v==null?"":v))).join("&");
+}
+async function op2pHmacSha256Hex_(secret,message){
+    try{
+        if(!window.crypto || !window.crypto.subtle || !window.TextEncoder) return "";
+        const key=await window.crypto.subtle.importKey("raw",new TextEncoder().encode(String(secret||"")),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+        const sig=await window.crypto.subtle.sign("HMAC",key,new TextEncoder().encode(String(message||"")));
+        return op2pBytesToHex_(new Uint8Array(sig));
+    }catch(e){return "";}
 }
 
 async function _0x013() {
-    let id = String(await _0x00e(_0x003, "") || "").trim();
-    if (id) return id;
-    id = "BR-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + "-" + Math.random().toString(36).slice(2);
-    await _0x00f(_0x003, id);
+    let id=String(await _0x00e(_0x003,"")||"").trim();
+    if(id)return id;
+    id=op2pNewBrowserId_();
+    if(!id) throw new Error("SECURE_RANDOM_UNAVAILABLE");
+    await _0x00f(_0x003,id);
     return id;
 }
 
@@ -198,7 +267,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.1"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.8.0"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -243,7 +312,7 @@ function op2pActionLimitReached() {
 
 async function op2pRuntimeIntegrityHash() {
     // Stable build attestation: avoids browser/UserScript function.toString false positives.
-    return OP2P_BUILD_ATTESTATION_V11_7_8;
+    return OP2P_BUILD_ATTESTATION_V11_8_0;
 }
 
 async function _0x019(event, detail, severity="INFO") {
@@ -259,97 +328,69 @@ async function _0x019(event, detail, severity="INFO") {
     } catch(e) {}
 }
 
-function _0x01a(action, key, extraParams = {}) {
-    return new Promise(async (resolve, reject) => {
-        const browserId = await _0x013();
-        const sessionId = String(await _0x00e(_0x004, "") || "").trim();
-        const ts = Date.now();
-        const nonce = "N-" + ts.toString(36) + "-" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-        const url = _0x001 + "?action=" + encodeURIComponent(action) + "&key=" + encodeURIComponent(key) + "&browser_id=" + encodeURIComponent(browserId) + "&session_id=" + encodeURIComponent(sessionId) + "&ts=" + encodeURIComponent(ts) + "&nonce=" + encodeURIComponent(nonce) + "&browser_type=" + encodeURIComponent(_0x015.browser) + "&browser_version=" + encodeURIComponent(_0x015.version) + "&os=" + encodeURIComponent(_0x015.os) + "&device_type=" + encodeURIComponent(_0x015.deviceType) + "&client_version=" + encodeURIComponent(_0x007) + "&_=" + Date.now();
-        const extraQuery = Object.keys(extraParams || {}).map(k => "&" + encodeURIComponent(k) + "=" + encodeURIComponent(String(extraParams[k] ?? ""))).join("");
-        const finalUrl = url + extraQuery;
-
-        let finished = false;
-        const finish = (fn, value) => { if (!finished) { finished = true; fn(value); } };
-
-        const decodeArrayBuffer = (value) => {
-            try { return new TextDecoder("utf-8").decode(new Uint8Array(value)); } catch (e) { return ""; }
-        };
-
-        const parseResponse = async (value) => {
-            if (value == null) return null;
-            if (typeof value === "object" && !Array.isArray(value)) {
-                if (value.ok !== undefined || value.error !== undefined || value.status !== undefined || value.action !== undefined) return value;
-                if (typeof Blob !== "undefined" && value instanceof Blob) {
-                    try { return parseResponse(await value.text()); } catch(e) { return null; }
+async function _0x01a(action,key,extraParams={}) {
+    return new Promise(async (resolve,reject)=>{
+        try{
+            const browserId=await _0x013();
+            const sessionId=String(await _0x00e(_0x004,"")||"").trim();
+            const ts=Date.now();
+            const nonce=op2pNewNonce_();
+            if(!nonce) throw new Error("SECURE_RANDOM_UNAVAILABLE");
+            const reqParams={...(extraParams||{})};
+            const proofSecret=await op2pGetProofSecret_(key);
+            let secret=proofSecret;
+            if(String(action||"").toLowerCase()==="activate" && !secret){
+                secret=op2pNewProofSecret_();
+                if(!secret) throw new Error("SECURE_RANDOM_UNAVAILABLE");
+                await op2pSetProofSecret_(key,secret);
+            }
+            const sensitive=["validate","heartbeat","security_policy","client_health","authorize_action","commit_action","release_action"].includes(String(action||"").toLowerCase());
+            if(sensitive && !reqParams.runtime_integrity_hash) reqParams.runtime_integrity_hash=await op2pRuntimeIntegrityHash();
+            if(String(action||"").toLowerCase()==="activate") reqParams.browser_proof_secret=secret;
+            if(secret){
+                const canonical=op2pCanonicalRequestString_(action,key,browserId,sessionId,ts,nonce,reqParams);
+                reqParams.browser_proof=await op2pHmacSha256Hex_(secret,canonical);
+                if(!reqParams.browser_proof) throw new Error("HMAC_UNAVAILABLE");
+            }
+            const base=[
+                ["action",action],["key",key],["browser_id",browserId],["session_id",sessionId],["ts",ts],["nonce",nonce],
+                ["browser_type",_0x015.browser],["browser_version",_0x015.version],["os",_0x015.os],["device_type",_0x015.deviceType],
+                ["client_version",_0x007]
+            ];
+            const query=base.map(([k,v])=>encodeURIComponent(k)+"="+encodeURIComponent(String(v??""))).join("&");
+            const extraQuery=Object.keys(reqParams).map(k=>"&"+encodeURIComponent(k)+"="+encodeURIComponent(String(reqParams[k]??""))).join("");
+            const finalUrl=_0x001+"?"+query+extraQuery+"&_="+Date.now();
+            let finished=false;
+            const finish=(fn,value)=>{if(!finished){finished=true;fn(value);}};
+            const decodeArrayBuffer=value=>{try{return new TextDecoder("utf-8").decode(new Uint8Array(value));}catch(e){return "";}};
+            const parseResponse=async value=>{
+                if(value==null)return null;
+                if(typeof value==="object"&&!Array.isArray(value)){
+                    if(value.ok!==undefined||value.error!==undefined||value.status!==undefined||value.action!==undefined)return value;
+                    if(typeof Blob!=="undefined"&&value instanceof Blob){try{return parseResponse(await value.text());}catch(e){return null;}}
+                    if(value instanceof ArrayBuffer)return parseResponse(decodeArrayBuffer(value));
                 }
-                if (value instanceof ArrayBuffer) return parseResponse(decodeArrayBuffer(value));
-            }
-            const raw = String(value).replace(/^\uFEFF/, "").trim();
-            if (!raw) return null;
-            try { return JSON.parse(raw); } catch (e) {}
-            const s = raw.indexOf("{"), e = raw.lastIndexOf("}");
-            if (s >= 0 && e > s) {
-                try { return JSON.parse(raw.slice(s, e + 1)); } catch (err) {}
-            }
-            return null;
-        };
-
-        const processResult = async (res) => {
-            const rawValue = (res && typeof res === "object")
-                ? ((typeof res.responseText === "string" && res.responseText.trim() !== "") ? res.responseText : res.response)
-                : res;
-            const data = await parseResponse(rawValue);
-            if (!data) return false;
-            if (typeof data === "object") {
-                data._browserId = browserId;
-                if (data.sessionId) await _0x00f(_0x004, String(data.sessionId));
-            }
-            finish(resolve, data);
-            return true;
-        };
-
-        const fail = (msg, res) => {
-            const extra = res && res.status ? " (HTTP " + String(res.status) + ")" : "";
-            finish(reject, new Error(String(msg || "API_ERROR") + extra));
-        };
-
-        const requestOptions = {
-            method: "GET",
-            url: finalUrl,
-            timeout: 15000,
-            responseType: "text",
-            headers: { "Accept": "application/json, text/plain, */*" },
-            onload: r => { Promise.resolve(processResult(r)).then(ok => { if (!ok) fail("INVALID_API_RESPONSE", r); }); },
-            onerror: () => fail("NETWORK_ERROR"),
-            ontimeout: () => fail("TIMEOUT")
-        };
-
-        try {
-            if (typeof GM_xmlhttpRequest === "function") {
-                GM_xmlhttpRequest(requestOptions);
-                return;
-            }
-        } catch(e) {}
-
-        try {
-            if (typeof GM !== "undefined" && typeof GM.xmlHttpRequest === "function") {
-                GM.xmlHttpRequest(requestOptions);
-                return;
-            }
-        } catch(e) {}
-
-        try {
-            fetch(finalUrl, { method: "GET", cache: "no-store", headers: { "Accept": "application/json, text/plain, */*" } })
-                .then(async r => ({ text: await r.text(), status: r.status }))
-                .then(async payload => {
-                    const ok = await processResult(payload.text);
-                    if (!ok) fail("INVALID_API_RESPONSE", payload);
-                })
-                .catch(() => fail("NETWORK_ERROR"));
-        } catch(e) {
-            fail("NETWORK_ERROR");
-        }
+                const raw=String(value).replace(/^\uFEFF/,"").trim(); if(!raw)return null;
+                try{return JSON.parse(raw);}catch(e){}
+                const s=raw.indexOf("{"),e=raw.lastIndexOf("}"); if(s>=0&&e>s){try{return JSON.parse(raw.slice(s,e+1));}catch(err){}}
+                return null;
+            };
+            const processResult=async res=>{
+                const rawValue=(res&&typeof res==="object")?((typeof res.responseText==="string"&&res.responseText.trim()!=="")?res.responseText:res.response):res;
+                const data=await parseResponse(rawValue);
+                if(!data)return false;
+                if(typeof data==="object"){
+                    data._browserId=browserId;
+                    if(data.sessionId)await _0x00f(_0x004,String(data.sessionId));
+                }
+                finish(resolve,data);return true;
+            };
+            const fail=(msg,res)=>{const extra=res&&res.status?" (HTTP "+String(res.status)+")":"";finish(reject,new Error(String(msg||"API_ERROR")+extra));};
+            const requestOptions={method:"GET",url:finalUrl,timeout:15000,responseType:"text",headers:{"Accept":"application/json, text/plain, */*"},onload:r=>{Promise.resolve(processResult(r)).then(ok=>{if(!ok)fail("INVALID_API_RESPONSE",r);});},onerror:()=>fail("NETWORK_ERROR"),ontimeout:()=>fail("TIMEOUT")};
+            try{if(typeof GM_xmlhttpRequest==="function"){GM_xmlhttpRequest(requestOptions);return;}}catch(e){}
+            try{if(typeof GM!=="undefined"&&typeof GM.xmlHttpRequest==="function"){GM.xmlHttpRequest(requestOptions);return;}}catch(e){}
+            try{fetch(finalUrl,{method:"GET",cache:"no-store",headers:{"Accept":"application/json, text/plain, */*"}}).then(async r=>({text:await r.text(),status:r.status})).then(async payload=>{const ok=await processResult(payload.text);if(!ok)fail("INVALID_API_RESPONSE",payload);}).catch(()=>fail("NETWORK_ERROR"));}catch(e){fail("NETWORK_ERROR");}
+        }catch(e){reject(e instanceof Error?e:new Error(String(e||"API_ERROR")));}
     });
 }
 
@@ -406,11 +447,16 @@ async function _0x01c() {
             res = await _0x01a("activate", key);
         }
 
-        
+        if (res && res.error === "BROWSER_PROOF_REQUIRED") {
+            res = await _0x01a("activate", key);
+        }
+
         if (res && res.error === "BROWSER_RESET_REQUIRED") {
-            const newBrowserId = "BR-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + "-" + Math.random().toString(36).slice(2);
+            const newBrowserId = op2pNewBrowserId_();
+            if(!newBrowserId) throw new Error("SECURE_RANDOM_UNAVAILABLE");
             await _0x00f(_0x003, newBrowserId);
             await _0x00f(_0x004, "");
+            await op2pClearProofSecret_();
             res = await _0x01a("activate", key);
         }
 
@@ -546,8 +592,8 @@ const _0x027 =
     + _0x01f
     + "|LICENSE|BROWSER|SECURITY";
 
-const OP2P_BUILD_ATTESTATION_V11_7_8 = "d21596bbe85c5cd0a7f162dac9973d97c380d6dae0df3ab82bd168b5ab7e46c8";
-const _0x028 = OP2P_BUILD_ATTESTATION_V11_7_8;
+const OP2P_BUILD_ATTESTATION_V11_8_0 = "cfcaa0ef96a5f759055634cb268eea96ed3bb530b7f0eb9acabd98d609228f28";
+const _0x028 = OP2P_BUILD_ATTESTATION_V11_8_0;
 
 let securityPaused = false;
 let securityActionTimes = [];
@@ -2565,7 +2611,7 @@ async function _0x041(showAlert = false) {
         }
 
         const err = String((res && res.error) || "LICENSE_ERROR");
-        if (["BROWSER_RESET_REQUIRED","BROWSER_LOCKED","LICENSE_LOCKED","LICENSE_MANUALLY_LOCKED","LICENSE_INACTIVE","LICENSE_REVOKED","LICENSE_EXPIRED","SYSTEM_KILLED","CLIENT_UPDATE_REQUIRED","SESSION_INVALID","SESSION_EXPIRED","MISSING_SESSION"].includes(err)) {
+        if (["BROWSER_RESET_REQUIRED","BROWSER_LOCKED","BROWSER_PROOF_REQUIRED","BROWSER_PROOF_INVALID","CLIENT_INTEGRITY_MISMATCH","LICENSE_LOCKED","LICENSE_MANUALLY_LOCKED","LICENSE_INACTIVE","LICENSE_REVOKED","LICENSE_EXPIRED","SYSTEM_KILLED","CLIENT_UPDATE_REQUIRED","SESSION_INVALID","SESSION_EXPIRED","MISSING_SESSION"].includes(err)) {
             op2pSecurityHardStop(err);
             if (showAlert) { try { alert("OP2P: License/security session tidak sah (" + err + ")."); } catch(e) {} }
             return false;
