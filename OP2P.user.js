@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.1
+// @version      11.7.2
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.1 | Production Hardening | Idle auto-refresh | Integrity baseline aligned */
+/* OP2P Secure Distribution V11.7.2 | Production Hardening | Idle auto-refresh | Persistent automation settings | Integrity baseline aligned */
 (() => {
 "use strict";
 
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.1";
+const _0x007 = "11.7.2";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_0";
@@ -897,6 +897,11 @@ function _0x03c() {
     settingsSaveTimer = setTimeout(_0x03d, 250);
 }
 
+function _0x03cImmediate() {
+    clearTimeout(settingsSaveTimer);
+    try { _0x03d(); } catch (e) {}
+}
+
 async function _0x03d() {
     try {
         const data = {
@@ -959,8 +964,11 @@ function op2pPersistRefreshState() {
             selectedModes: [...selectedModes],
             comments: String((commentsBox && commentsBox.value) || ""),
             panelVisible: !!(panel && panel.style.display !== "none"),
-            runMode: String((typeof runMode !== "undefined" && runMode && runMode.value) || "loop"),
-            minutes: String((typeof minutesInput !== "undefined" && minutesInput && minutesInput.value) || "1"),
+            scrollStep: String((typeof scrollStepInput !== "undefined" && scrollStepInput && scrollStepInput.value) || defaultSettings.scrollStep),
+            scrollWait: String((typeof scrollWaitInput !== "undefined" && scrollWaitInput && scrollWaitInput.value) || defaultSettings.scrollWait),
+            delay: String((typeof delayInput !== "undefined" && delayInput && delayInput.value) || defaultSettings.delay),
+            runMode: String((typeof runMode !== "undefined" && runMode && runMode.value) || defaultSettings.runMode),
+            minutes: String((typeof minutesInput !== "undefined" && minutesInput && minutesInput.value) || defaultSettings.minutes),
             autoRefresh: !!(typeof autoRefreshCheck !== "undefined" && autoRefreshCheck && autoRefreshCheck.checked),
             wasRunning: !!(running || _0x016.running),
             savedAt: Date.now()
@@ -986,12 +994,16 @@ function op2pRestoreRefreshState() {
         }
         const commentsBox = op2pGetCommentElement();
         if (typeof state.comments === "string" && commentsBox) commentsBox.value = state.comments;
+        if (typeof state.scrollStep === "string" && typeof scrollStepInput !== "undefined" && scrollStepInput) scrollStepInput.value = state.scrollStep;
+        if (typeof state.scrollWait === "string" && typeof scrollWaitInput !== "undefined" && scrollWaitInput) scrollWaitInput.value = state.scrollWait;
+        if (typeof state.delay === "string" && typeof delayInput !== "undefined" && delayInput) delayInput.value = state.delay;
         if (typeof state.runMode === "string" && typeof runMode !== "undefined" && runMode && ["loop","minutes","until"].includes(state.runMode)) {
             runMode.value = state.runMode;
             if (typeof durationBox !== "undefined" && durationBox) durationBox.style.display = runMode.value === "minutes" ? "block" : "none";
         }
         if (typeof state.minutes === "string" && typeof minutesInput !== "undefined" && minutesInput) minutesInput.value = state.minutes;
         if (typeof state.autoRefresh === "boolean" && typeof autoRefreshCheck !== "undefined" && autoRefreshCheck) autoRefreshCheck.checked = state.autoRefresh;
+        try { _0x03cImmediate(); } catch (e) {}
         const panel = op2pGetPanelElement();
         if (panel && typeof state.panelVisible === "boolean") panel.style.display = state.panelVisible ? "block" : "none";
         return state;
@@ -1424,11 +1436,11 @@ function _0x03f() {
 
     [scrollStepInput, scrollWaitInput, delayInput, minutesInput].forEach(input => {
         input.addEventListener("input", _0x03c);
-        input.addEventListener("change", _0x03c);
+        input.addEventListener("change", _0x03cImmediate);
     });
 
-    runMode.addEventListener("change", _0x03c);
-    autoRefreshCheck.addEventListener("change", () => { _0x03c(); op2pScheduleAutoRefresh(); });
+    runMode.addEventListener("change", () => { _0x03cImmediate(); if (durationBox) durationBox.style.display = runMode.value === "minutes" ? "block" : "none"; });
+    autoRefreshCheck.addEventListener("change", () => { _0x03cImmediate(); op2pScheduleAutoRefresh(); });
 
     const statsHead = $("statsHead");
     const statsBody = $("statsBody");
@@ -2630,9 +2642,11 @@ function _0x044() {
 }
 
 window.addEventListener("pagehide", () => {
+    try { _0x03cImmediate(); } catch (e) {}
     try { op2pPersistRefreshState(); } catch (e) {}
 }, true);
 window.addEventListener("beforeunload", () => {
+    try { _0x03cImmediate(); } catch (e) {}
     try { op2pPersistRefreshState(); } catch (e) {}
 }, true);
 
