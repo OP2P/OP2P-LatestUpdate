@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.0
+// @version      11.7.1
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.0 | Production Hardening | Idle auto-refresh | Integrity baseline aligned */
+/* OP2P Secure Distribution V11.7.1 | Production Hardening | Idle auto-refresh | Integrity baseline aligned */
 (() => {
 "use strict";
 
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.0";
+const _0x007 = "11.7.1";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_0";
@@ -926,22 +926,57 @@ function op2pIsBusyForRefresh() {
     return !!(_0x016.running || _0x016.actionInProgress || _0x016.timerActive || running);
 }
 
+const OP2P_PERSIST_STATE_KEY = "OP2P_USER_PERSIST_STATE_V1";
+const OP2P_RUN_INTENT_KEY = "OP2P_USER_RUN_INTENT_V1";
+
+function op2pGetPanelElement() {
+    try {
+        const host = document.getElementById(HOST_ID);
+        return host && host.shadowRoot ? host.shadowRoot.querySelector(".panel") : null;
+    } catch (e) { return null; }
+}
+
+function op2pGetCommentElement() {
+    try {
+        const host = document.getElementById(HOST_ID);
+        return host && host.shadowRoot ? host.shadowRoot.getElementById("comments") : null;
+    } catch (e) { return null; }
+}
+
+function op2pGetRunIntent() {
+    try { return localStorage.getItem(OP2P_RUN_INTENT_KEY) === "1"; } catch (e) { return false; }
+}
+
+function op2pSetRunIntent(value) {
+    try { localStorage.setItem(OP2P_RUN_INTENT_KEY, value ? "1" : "0"); } catch (e) {}
+}
+
 function op2pPersistRefreshState() {
     try {
+        const panel = op2pGetPanelElement();
+        const commentsBox = op2pGetCommentElement();
         const state = {
             selectedModes: [...selectedModes],
-            comments: String((document.getElementById("comments") || {}).value || ""),
-            panelVisible: !!(document.getElementById(HOST_ID) && document.getElementById(HOST_ID).style.display !== "none"),
+            comments: String((commentsBox && commentsBox.value) || ""),
+            panelVisible: !!(panel && panel.style.display !== "none"),
+            runMode: String((typeof runMode !== "undefined" && runMode && runMode.value) || "loop"),
+            minutes: String((typeof minutesInput !== "undefined" && minutesInput && minutesInput.value) || "1"),
+            autoRefresh: !!(typeof autoRefreshCheck !== "undefined" && autoRefreshCheck && autoRefreshCheck.checked),
+            wasRunning: !!(running || _0x016.running),
             savedAt: Date.now()
         };
-        sessionStorage.setItem(OP2P_AUTO_REFRESH_STATE, JSON.stringify(state));
-    } catch (e) {}
+        const raw = JSON.stringify(state);
+        localStorage.setItem(OP2P_PERSIST_STATE_KEY, raw);
+        try { sessionStorage.setItem(OP2P_AUTO_REFRESH_STATE, raw); } catch (e) {}
+        op2pSetRunIntent(state.wasRunning);
+        return true;
+    } catch (e) { return false; }
 }
 
 function op2pRestoreRefreshState() {
     try {
-        const raw = sessionStorage.getItem(OP2P_AUTO_REFRESH_STATE);
-        if (!raw) return;
+        const raw = localStorage.getItem(OP2P_PERSIST_STATE_KEY) || sessionStorage.getItem(OP2P_AUTO_REFRESH_STATE);
+        if (!raw) return null;
         const state = JSON.parse(raw);
         if (Array.isArray(state.selectedModes)) {
             selectedModes.clear();
@@ -949,10 +984,22 @@ function op2pRestoreRefreshState() {
                 if (typeof mode === "string" && op2pModeAllowed(mode)) selectedModes.add(mode);
             });
         }
-        const commentsBox = document.getElementById("comments");
+        const commentsBox = op2pGetCommentElement();
         if (typeof state.comments === "string" && commentsBox) commentsBox.value = state.comments;
-        sessionStorage.removeItem(OP2P_AUTO_REFRESH_STATE);
-    } catch (e) {}
+        if (typeof state.runMode === "string" && typeof runMode !== "undefined" && runMode && ["loop","minutes","until"].includes(state.runMode)) {
+            runMode.value = state.runMode;
+            if (typeof durationBox !== "undefined" && durationBox) durationBox.style.display = runMode.value === "minutes" ? "block" : "none";
+        }
+        if (typeof state.minutes === "string" && typeof minutesInput !== "undefined" && minutesInput) minutesInput.value = state.minutes;
+        if (typeof state.autoRefresh === "boolean" && typeof autoRefreshCheck !== "undefined" && autoRefreshCheck) autoRefreshCheck.checked = state.autoRefresh;
+        const panel = op2pGetPanelElement();
+        if (panel && typeof state.panelVisible === "boolean") panel.style.display = state.panelVisible ? "block" : "none";
+        return state;
+    } catch (e) { return null; }
+}
+
+function op2pClearPersistedRun() {
+    try { op2pSetRunIntent(false); } catch (e) {}
 }
 
 function op2pDoIdleRefresh() {
@@ -984,6 +1031,61 @@ function init() {
     if (!document.getElementById(HOST_ID)) {
         _0x03f();
     }
+}
+
+// V11.7.1 SPA navigation detection: Facebook changes routes without a full page reload.
+let op2pSpaDetectorStarted = false;
+let op2pSpaLastUrl = String(location.href || "");
+
+function op2pHandleSpaNavigation(source = "SPA") {
+    try {
+        const nextUrl = String(location.href || "");
+        if (nextUrl === op2pSpaLastUrl && source !== "SPA_INIT") return;
+        op2pSpaLastUrl = nextUrl;
+
+        // Keep the existing panel alive across Facebook SPA route changes.
+        init();
+        try { refreshModes(); } catch (e) {}
+        try { renderPremiumDashboard(); } catch (e) {}
+        try { op2pRestoreRefreshState(); } catch (e) {}
+        _0x019("SPA_NAVIGATION", source + " -> " + nextUrl).catch(() => {});
+    } catch (e) {}
+}
+
+function op2pStartSpaDetection() {
+    if (op2pSpaDetectorStarted) return;
+    op2pSpaDetectorStarted = true;
+    op2pSpaLastUrl = String(location.href || "");
+
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    try {
+        history.pushState = function() {
+            const result = originalPushState.apply(this, arguments);
+            setTimeout(() => op2pHandleSpaNavigation("pushState"), 0);
+            return result;
+        };
+    } catch (e) {}
+
+    try {
+        history.replaceState = function() {
+            const result = originalReplaceState.apply(this, arguments);
+            setTimeout(() => op2pHandleSpaNavigation("replaceState"), 0);
+            return result;
+        };
+    } catch (e) {}
+
+    window.addEventListener("popstate", () => op2pHandleSpaNavigation("popstate"), true);
+    window.addEventListener("hashchange", () => op2pHandleSpaNavigation("hashchange"), true);
+
+    // Safety net for navigation methods Facebook changes outside our wrappers.
+    setInterval(() => {
+        try {
+            const current = String(location.href || "");
+            if (current !== op2pSpaLastUrl) op2pHandleSpaNavigation("url-poll");
+        } catch (e) {}
+    }, 1000);
 }
 
 let scrollStepInput, scrollWaitInput, delayInput, runMode, minutesInput, durationBox, autoRefreshCheck;
@@ -1689,13 +1791,25 @@ function _0x03f() {
         .then(() => _0x037())
         .then(() => _0x03e())
         .then(() => {
-            op2pRestoreRefreshState();
+            const persistedState = op2pRestoreRefreshState();
             refreshModes();
             renderStats();
             window.op2pSecurityRefresh();
             renderPremiumDashboard();
             op2pScheduleAutoRefresh();
             setInterval(renderPremiumDashboard, 2000);
+            if (persistedState && persistedState.wasRunning && selectedModes.size && !op2pSecurityBlocked()) {
+                setTimeout(() => {
+                    try {
+                        if (!running) {
+                            start();
+                            renderPremiumDashboard();
+                        }
+                    } catch (e) {
+                        _0x019("RESUME_ERROR", String(e && e.message || e), "ERROR").catch(()=>{});
+                    }
+                }, 700);
+            }
         });
 
     openButton.onclick = () => {
@@ -2276,6 +2390,8 @@ function _0x03f() {
 
         running = true;
         _0x016.running = true;
+        op2pSetRunIntent(true);
+        op2pPersistRefreshState();
         _0x019("START", "OP2P started").catch(()=>{});
         status.textContent = "RUNNING";
         status.style.color = "#4ade80";
@@ -2318,6 +2434,8 @@ function _0x03f() {
         timer = null;
         countdownTimer = null;
         durationTimer = null;
+        op2pClearPersistedRun();
+        op2pPersistRefreshState();
         next.textContent = "-";
         remainingEl.textContent = "-";
         if (op2pSecurityBlocked()) {
@@ -2511,6 +2629,13 @@ function _0x044() {
     );
 }
 
+window.addEventListener("pagehide", () => {
+    try { op2pPersistRefreshState(); } catch (e) {}
+}, true);
+window.addEventListener("beforeunload", () => {
+    try { op2pPersistRefreshState(); } catch (e) {}
+}, true);
+
 _0x01c().then(async ok => {
     if (!ok) return;
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_5_4"); } catch(e) {}
@@ -2523,6 +2648,7 @@ _0x01c().then(async ok => {
         return;
     }
     init();
+    op2pStartSpaDetection();
     renderServerPolicyUi?.();
     _0x044(); _0x042(); _0x043(); _0x046();
     _0x019("CLIENT_ONLINE", "Client started").catch(()=>{});
