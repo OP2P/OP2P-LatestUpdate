@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.5
+// @version      11.7.6
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.5 | Production Hardening | Idle auto-refresh | Persistent automation settings | Integrity baseline aligned */
+/* OP2P Secure Distribution V11.7.6 | Production Hardening | Idle auto-refresh | Persistent automation settings | Integrity baseline aligned */
 (() => {
 "use strict";
 
@@ -35,10 +35,10 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.5";
+const _0x007 = "11.7.6";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_5";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_6";
 const OP2P_AUTO_REFRESH_MS = 15 * 60 * 1000;
 const OP2P_AUTO_REFRESH_CHECK_MS = 30 * 1000;
 const OP2P_AUTO_REFRESH_STATE = "OP2P_AUTO_REFRESH_STATE_V1";
@@ -950,7 +950,7 @@ function op2pIsBusyForRefresh() {
     return !!(_0x016.running || _0x016.actionInProgress || _0x016.timerActive || running);
 }
 
-const OP2P_PERSIST_STATE_KEY = "OP2P_USER_PERSIST_STATE_V1";
+const OP2P_PERSIST_STATE_KEY = "OP2P_USER_PERSIST_STATE_V2";
 const OP2P_RUN_INTENT_KEY = "OP2P_USER_RUN_INTENT_V1";
 
 function op2pGetPanelElement() {
@@ -1653,7 +1653,7 @@ function _0x03f() {
         } catch(e) {}
     }
 
-    panel.style.display = "none";
+    panel.style.display = "block";
 
     const commentHead = $("commentHead");
     const commentBody = $("commentBody");
@@ -2674,6 +2674,7 @@ _0x01c().then(async ok => {
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_5_4"); } catch(e) {}
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_7_0"); } catch(e) {}
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_7_4"); } catch(e) {}
+    try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_7_5"); } catch(e) {}
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_6_0"); } catch(e) {}
     const freshPolicyOk = await op2pLoadServerPolicy(true);
     if (!freshPolicyOk) {
