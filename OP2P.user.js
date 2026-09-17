@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.2
+// @version      11.7.3
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -35,10 +35,10 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.2";
+const _0x007 = "11.7.3";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_0";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_3";
 const OP2P_AUTO_REFRESH_MS = 15 * 60 * 1000;
 const OP2P_AUTO_REFRESH_CHECK_MS = 30 * 1000;
 const OP2P_AUTO_REFRESH_STATE = "OP2P_AUTO_REFRESH_STATE_V1";
@@ -274,64 +274,83 @@ function _0x01a(action, key, extraParams = {}) {
         const finalUrl = url + extraQuery;
 
         let finished = false;
-        const finish = (fn, value) => { if (finished) return; finished = true; fn(value); };
+        const finish = (fn, value) => { if (!finished) { finished = true; fn(value); } };
 
-        const parseResponse = (value) => {
+        const decodeArrayBuffer = (value) => {
+            try { return new TextDecoder("utf-8").decode(new Uint8Array(value)); } catch (e) { return ""; }
+        };
+
+        const parseResponse = async (value) => {
             if (value == null) return null;
-            if (typeof value === "object") return value;
-            const raw = String(value).trim();
+            if (typeof value === "object" && !Array.isArray(value)) {
+                if (value.ok !== undefined || value.error !== undefined || value.status !== undefined || value.action !== undefined) return value;
+                if (typeof Blob !== "undefined" && value instanceof Blob) {
+                    try { return parseResponse(await value.text()); } catch(e) { return null; }
+                }
+                if (value instanceof ArrayBuffer) return parseResponse(decodeArrayBuffer(value));
+            }
+            const raw = String(value).replace(/^\uFEFF/, "").trim();
             if (!raw) return null;
             try { return JSON.parse(raw); } catch (e) {}
-            const s = raw.indexOf("{"); const e = raw.lastIndexOf("}");
-            if (s >= 0 && e > s) { try { return JSON.parse(raw.slice(s, e + 1)); } catch (err) {} }
+            const s = raw.indexOf("{");
+            const e = raw.lastIndexOf("}");
+            if (s >= 0 && e > s) {
+                try { return JSON.parse(raw.slice(s, e + 1)); } catch (err) {}
+            }
             return null;
         };
 
-        const processResult = (res) => {
-            const data = parseResponse(res && typeof res === "object" ? (res.responseText || res.response) : res);
+        const processResult = async (res) => {
+            const rawValue = (res && typeof res === "object")
+                ? ((typeof res.responseText === "string" && res.responseText.trim() !== "") ? res.responseText : res.response)
+                : res;
+            const data = await parseResponse(rawValue);
             if (!data) return false;
-            data._browserId = browserId;
-            if (data.sessionId) {
-                void _0x00f(_0x004, String(data.sessionId));
+            if (typeof data === "object") {
+                data._browserId = browserId;
+                if (data.sessionId) void _0x00f(_0x004, String(data.sessionId));
             }
             finish(resolve, data);
             return true;
         };
 
-        const fail = msg => finish(reject, new Error(msg));
+        const fail = (msg, res) => {
+            const extra = res && res.status ? " (HTTP " + String(res.status) + ")" : "";
+            finish(reject, new Error(String(msg || "API_ERROR") + extra));
+        };
+
+        const requestOptions = {
+            method: "GET",
+            url: finalUrl,
+            timeout: 15000,
+            responseType: "text",
+            headers: { "Accept": "application/json, text/plain, */*" },
+            onload: r => { Promise.resolve(processResult(r)).then(ok => { if (!ok) fail("INVALID_API_RESPONSE", r); }); },
+            onerror: () => fail("NETWORK_ERROR"),
+            ontimeout: () => fail("TIMEOUT")
+        };
 
         try {
             if (typeof GM_xmlhttpRequest === "function") {
-                GM_xmlhttpRequest({
-                    method: "GET",
-                    url: finalUrl,
-                    timeout: 15000,
-                    onload: r => { if (!processResult(r)) fail("INVALID_API_RESPONSE"); },
-                    onerror: () => fail("NETWORK_ERROR"),
-                    ontimeout: () => fail("TIMEOUT")
-                });
+                GM_xmlhttpRequest(requestOptions);
                 return;
             }
         } catch(e) {}
 
         try {
             if (typeof GM !== "undefined" && typeof GM.xmlHttpRequest === "function") {
-                GM.xmlHttpRequest({
-                    method: "GET",
-                    url: finalUrl,
-                    timeout: 15000,
-                    onload: r => { if (!processResult(r)) fail("INVALID_API_RESPONSE"); },
-                    onerror: () => fail("NETWORK_ERROR"),
-                    ontimeout: () => fail("TIMEOUT")
-                });
+                GM.xmlHttpRequest(requestOptions);
                 return;
             }
         } catch(e) {}
 
         try {
-            fetch(finalUrl, { method: "GET", cache: "no-store" })
-                .then(r => r.text())
-                .then(t => { if (!processResult(t)) fail("INVALID_API_RESPONSE"); })
+            fetch(finalUrl, { method: "GET", cache: "no-store", headers: { "Accept": "application/json, text/plain, */*" } })
+                .then(async r => ({ text: await r.text(), status: r.status }))
+                .then(async payload => {
+                    const ok = await processResult(payload.text);
+                    if (!ok) fail("INVALID_API_RESPONSE", payload);
+                })
                 .catch(() => fail("NETWORK_ERROR"));
         } catch(e) {
             fail("NETWORK_ERROR");
