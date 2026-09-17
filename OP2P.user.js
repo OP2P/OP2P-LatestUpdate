@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.6
+// @version      11.7.7
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,11 +19,15 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.6 | Production Hardening | Idle auto-refresh | Persistent automation settings | Integrity baseline aligned */
+/* OP2P Secure Distribution V11.7.7 | Stable action core | SPA | Persistent state | Idle auto-refresh | Server activity log */
 (() => {
 "use strict";
 
+
 if (window.top !== window.self) return;
+
+
+
 
 const _0x001 = "https://script.google.com/macros/s/AKfycbzb8GMrYF7dfz2QHTpxGOvbxwpYmBMTzrlT84dPRYuaIWtOyklY8Dhszf_A_SxDC7m5Yw/exec";
 const _0x002 = "OP2P_LICENSE_KEY_V7";
@@ -31,10 +35,10 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.6";
+const _0x007 = "11.7.7";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_6";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_7";
 const OP2P_AUTO_REFRESH_MS = 15 * 60 * 1000;
 const OP2P_AUTO_REFRESH_CHECK_MS = 30 * 1000;
 const OP2P_AUTO_REFRESH_STATE = "OP2P_AUTO_REFRESH_STATE_V1";
@@ -44,6 +48,8 @@ const _0x00a = 15000;
 const _0x00b = 8000;
 const OP2P_RUNTIME_FAIL_LIMIT = 3;
 
+
+// V11.3.4 FIREFOX PERSISTENCE FIX: explicit modern GM.getValue/GM.setValue bridge for Greasemonkey 4+.
 function _0x00c(key, fallback = "") {
     try {
         if (typeof GM_getValue === "function") {
@@ -71,18 +77,21 @@ function _0x00d(key, value) {
 }
 
 async function _0x00e(key, fallback = "") {
+    // Primary: modern Greasemonkey 4+ async storage.
     try {
         if (typeof GM !== "undefined" && typeof GM.getValue === "function") {
             const val = await GM.getValue(key, fallback);
             if (val !== null && val !== undefined && val !== "") return String(val);
         }
     } catch(e) {}
+    // Secondary: legacy GM synchronous storage.
     try {
         if (typeof GM_getValue === "function") {
             const val = GM_getValue(key, fallback);
             if (val !== null && val !== undefined && val !== "") return String(val);
         }
     } catch(e) {}
+    // Last resort: page localStorage.
     try {
         const v = localStorage.getItem(key);
         if (v !== null && v !== undefined && v !== "") return String(v);
@@ -132,6 +141,7 @@ async function _0x013() {
     await _0x00f(_0x003, id);
     return id;
 }
+
 
 function _0x014() {
     const ua = String(navigator.userAgent || "");
@@ -188,7 +198,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.7.6"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.1"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -231,9 +241,13 @@ function op2pActionLimitReached() {
     return max > 0 && statsTotal() >= max;
 }
 
-// FIX: Mengembalikan hash tepat yang sepadan dengan baseline server
 async function op2pRuntimeIntegrityHash() {
-    return await _0x033(_0x027);
+    try {
+        const critical = [typeof _0x01a === "function" ? _0x01a.toString() : "", typeof _0x01c === "function" ? _0x01c.toString() : "", typeof op2pSecurityHardStop === "function" ? op2pSecurityHardStop.toString() : "", typeof _0x041 === "function" ? _0x041.toString() : "", typeof _0x045 === "function" ? _0x045.toString() : ""].join("\n/*OP2P*/\n");
+        if (!window.crypto?.subtle) return "";
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(critical));
+        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    } catch(e) { return ""; }
 }
 
 async function _0x019(event, detail, severity="INFO") {
@@ -278,8 +292,7 @@ function _0x01a(action, key, extraParams = {}) {
             const raw = String(value).replace(/^\uFEFF/, "").trim();
             if (!raw) return null;
             try { return JSON.parse(raw); } catch (e) {}
-            const s = raw.indexOf("{");
-            const e = raw.lastIndexOf("}");
+            const s = raw.indexOf("{"), e = raw.lastIndexOf("}");
             if (s >= 0 && e > s) {
                 try { return JSON.parse(raw.slice(s, e + 1)); } catch (err) {}
             }
@@ -369,6 +382,13 @@ async function _0x01b(res, key) {
 
 async function _0x01c() {
     let storedKey = await _0x010();
+    let lastValidTs = Number(await _0x00e(_0x005, "0")) || 0;
+    const now = Date.now();
+
+    // V11.5.7 SECURITY FIX:
+    // Startup MUST contact the server. Do not allow the local 15-minute cache
+    // to bypass REVOKE / LOCK / SUSPEND / EXPIRED status after page refresh.
+
     let key = storedKey;
     const isFirstTime = !storedKey;
 
@@ -378,6 +398,7 @@ async function _0x01c() {
             alert("OP2P: License key diperlukan.");
             return false;
         }
+        
         await _0x011(key);
     }
 
@@ -389,6 +410,7 @@ async function _0x01c() {
             res = await _0x01a("activate", key);
         }
 
+        
         if (res && res.error === "BROWSER_RESET_REQUIRED") {
             const newBrowserId = "BR-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + "-" + Math.random().toString(36).slice(2);
             await _0x00f(_0x003, newBrowserId);
@@ -424,7 +446,7 @@ async function _0x01c() {
 
         if (err === "BROWSER_LOCKED" || err === "LICENSE_LOCKED") {
             const resetChoice = confirm(
-                "OP2P: License ini sedang digunakan pada browser lain!\n\n" +
+                "OP2P: License ini sedang digunakan pada browser lain (contoh: Firefox/Chrome)!\n\n" +
                 "Satu key hanya sah untuk 1 browser sahaja.\n\n" +
                 "Klik OK untuk padam key ini di browser ini supaya boleh masukkan key yang lain."
             );
@@ -471,6 +493,10 @@ async function _0x01c() {
             return false;
         }
 
+        
+        // SECURITY HARDENING V11.5.7: fail closed.
+        // Never trust a stored license when the server rejects validation.
+        // This prevents offline/network-failure bypass of LOCK/SUSPEND/REVOKE/EXPIRED.
         if (err === "NETWORK_ERROR" || err === "TIMEOUT" || err === "INVALID_API_RESPONSE" || err === "LICENSE_ERROR") {
             op2pSecurityHardStop("SERVER_VALIDATION_FAILED");
             alert("OP2P: Server license validation gagal (" + err + "). OP2P dikunci untuk keselamatan. Sila semak internet dan cuba lagi.");
@@ -481,8 +507,9 @@ async function _0x01c() {
         return false;
 
     } catch(e) {
+        // SECURITY HARDENING V11.5.7: fail closed on unexpected validation errors.
         op2pSecurityHardStop("SERVER_VALIDATION_EXCEPTION");
-        alert("OP2P: Gagal semak license (" + String(e.message || e) + "). OP2P dikunci untuk keselamatan.");
+        alert("OP2P: Gagal semak license (" + String(e.message || e) + "). OP2P dikunci untuk keselamatan. Sila semak sambungan internet.");
         return false;
     }
 }
@@ -499,9 +526,13 @@ let remaining = 0;
 let remainingDuration = 0;
 let totalCount = 0;
 
+
+
+
 const _0x01d = "OP2P_SECURITY_LOG_V4";
 const _0x01e = 20;
 const _0x01f = 60 * 1000;
+
 const _0x020 = 30 * 1000;
 const _0x021 = 5;
 const _0x022 = 15 * 1000;
@@ -519,7 +550,7 @@ const _0x027 =
     + _0x01f
     + "|LICENSE|BROWSER|SECURITY";
 
-const _0x028 = "bf8ef56af67c7decb851928bc115b3956231f39f19057d3699357ee907f6ab11";
+const _0x028 = "eaadb019c3fe3f861bbba99cfa0c1fce20647e190393ba4de10451512817f563";
 
 let securityPaused = false;
 let securityActionTimes = [];
@@ -551,9 +582,13 @@ function _0x02b(type, detail) {
         type: String(type || "EVENT"),
         detail: String(detail || "")
     });
+
     securityLog = securityLog.slice(-100);
     _0x02a();
-    if (typeof window.op2pSecurityRefresh === "function") window.op2pSecurityRefresh();
+
+    if (typeof window.op2pSecurityRefresh === "function") {
+        window.op2pSecurityRefresh();
+    }
 }
 
 function _0x02c() {
@@ -563,6 +598,7 @@ function _0x02c() {
 
 function _0x02d() {
     _0x02c();
+
     const now = Date.now();
     const recent30 = securityActionTimes.filter(t => t >= now - _0x020);
     const recent15 = securityActionTimes.filter(t => t >= now - _0x022);
@@ -713,17 +749,17 @@ async function _0x033(text) {
 }
 
 async function _0x034() {
-    const actual = await _0x033(_0x027);
-    if (!actual) {
+    try {
+        const actual = await op2pRuntimeIntegrityHash();
+        const ok = !!actual && actual === _0x028;
+        securityIntegrityState = ok ? "VERIFIED" : "TAMPER";
+        _0x02b("INTEGRITY", ok ? "Runtime fingerprint verified" : "Runtime fingerprint mismatch");
+        return ok;
+    } catch (e) {
         securityIntegrityState = "UNAVAILABLE";
-        _0x02b("INTEGRITY", "SHA-256 unavailable");
+        _0x02b("INTEGRITY", "Integrity check unavailable");
         return false;
     }
-
-    const ok = actual === _0x028;
-    securityIntegrityState = ok ? "VERIFIED" : "TAMPER";
-    _0x02b("INTEGRITY", ok ? "Local fingerprint verified" : "Local fingerprint mismatch");
-    return ok;
 }
 
 async function _0x035() {
@@ -750,8 +786,10 @@ window.op2pSecurityState = {
 
 let lastCommentBox = null;
 let commentBusy = false;
+let lastSubmittedComment = "";
 let lastSubmittedBox = null;
 let lastSubmittedArticle = null;
+let lastSubmitTime = 0;
 
 const selectedModes = new Set();
 
@@ -802,6 +840,9 @@ const RANDOM_COMMENT_COUNT = 5;
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+
+
 
 const _0x036 = "OP2P_STATS_V1";
 const defaultStats = { follow: 0, friend: 0, like: 0, comment: 0, scroll: 0 };
@@ -860,10 +901,18 @@ const defaultSettings = { scrollStep: "80", scrollWait: "1", delay: "5", runMode
 
 async function _0x03b() {
     try {
-        const raw = await _0x00e(_0x03a, JSON.stringify(defaultSettings));
-        const parsed = JSON.parse(String(raw || "{}"));
+        const fallbackRaw = localStorage.getItem(_0x03a) || JSON.stringify(defaultSettings);
+        const raw = await _0x00e(_0x03a, fallbackRaw);
+        const parsed = JSON.parse(String(raw || fallbackRaw));
         return { ...defaultSettings, ...(parsed && typeof parsed === "object" ? parsed : {}) };
     } catch (e) {
+        try {
+            const localRaw = localStorage.getItem(_0x03a);
+            if (localRaw) {
+                const parsed = JSON.parse(localRaw);
+                return { ...defaultSettings, ...(parsed && typeof parsed === "object" ? parsed : {}) };
+            }
+        } catch (e2) {}
         return { ...defaultSettings };
     }
 }
@@ -872,11 +921,6 @@ let settingsSaveTimer = null;
 function _0x03c() {
     clearTimeout(settingsSaveTimer);
     settingsSaveTimer = setTimeout(_0x03d, 250);
-}
-
-function _0x03cImmediate() {
-    clearTimeout(settingsSaveTimer);
-    try { _0x03d(); } catch (e) {}
 }
 
 async function _0x03d() {
@@ -889,7 +933,9 @@ async function _0x03d() {
             minutes: String(minutesInput.value || defaultSettings.minutes),
             autoRefresh: autoRefreshCheck ? String(!!autoRefreshCheck.checked) : defaultSettings.autoRefresh
         };
-        await _0x00f(_0x03a, JSON.stringify(data));
+        const raw = JSON.stringify(data);
+        await _0x00f(_0x03a, raw);
+        try { localStorage.setItem(_0x03a, raw); } catch (e) {}
     } catch (e) {}
 }
 
@@ -908,8 +954,8 @@ function op2pIsBusyForRefresh() {
     return !!(_0x016.running || _0x016.actionInProgress || _0x016.timerActive || running);
 }
 
-const OP2P_PERSIST_STATE_KEY = "OP2P_USER_PERSIST_STATE_V2";
-const OP2P_RUN_INTENT_KEY = "OP2P_USER_RUN_INTENT_V1";
+const OP2P_PERSIST_STATE_KEY = "OP2P_USER_PERSIST_STATE_V3";
+const OP2P_RUN_INTENT_KEY = "OP2P_USER_RUN_INTENT_V2";
 
 function op2pGetPanelElement() {
     try {
@@ -925,22 +971,25 @@ function op2pGetCommentElement() {
     } catch (e) { return null; }
 }
 
-function op2pGetRunIntent() {
-    try { return localStorage.getItem(OP2P_RUN_INTENT_KEY) === "1"; } catch (e) { return false; }
-}
-
 function op2pSetRunIntent(value) {
     try { localStorage.setItem(OP2P_RUN_INTENT_KEY, value ? "1" : "0"); } catch (e) {}
 }
 
+function op2pGetRunIntent() {
+    try { return localStorage.getItem(OP2P_RUN_INTENT_KEY) === "1"; } catch (e) { return false; }
+}
+
+function op2pClearPersistedRun() {
+    op2pSetRunIntent(false);
+}
+
 function op2pPersistRefreshState() {
     try {
-        const panel = op2pGetPanelElement();
         const commentsBox = op2pGetCommentElement();
         const state = {
             selectedModes: [...selectedModes],
             comments: String((commentsBox && commentsBox.value) || ""),
-            panelVisible: !!(panel && panel.style.display !== "none"),
+            panelVisible: true,
             scrollStep: String((typeof scrollStepInput !== "undefined" && scrollStepInput && scrollStepInput.value) || defaultSettings.scrollStep),
             scrollWait: String((typeof scrollWaitInput !== "undefined" && scrollWaitInput && scrollWaitInput.value) || defaultSettings.scrollWait),
             delay: String((typeof delayInput !== "undefined" && delayInput && delayInput.value) || defaultSettings.delay),
@@ -980,15 +1029,8 @@ function op2pRestoreRefreshState() {
         }
         if (typeof state.minutes === "string" && typeof minutesInput !== "undefined" && minutesInput) minutesInput.value = state.minutes;
         if (typeof state.autoRefresh === "boolean" && typeof autoRefreshCheck !== "undefined" && autoRefreshCheck) autoRefreshCheck.checked = state.autoRefresh;
-        try { _0x03cImmediate(); } catch (e) {}
-        const panel = op2pGetPanelElement();
-        if (panel && typeof state.panelVisible === "boolean") panel.style.display = state.panelVisible ? "block" : "none";
         return state;
     } catch (e) { return null; }
-}
-
-function op2pClearPersistedRun() {
-    try { op2pSetRunIntent(false); } catch (e) {}
 }
 
 function op2pDoIdleRefresh() {
@@ -1022,6 +1064,7 @@ function init() {
     }
 }
 
+// V11.7.7 SPA navigation detection: Facebook changes routes without a full page reload.
 let op2pSpaDetectorStarted = false;
 let op2pSpaLastUrl = String(location.href || "");
 
@@ -1031,6 +1074,7 @@ function op2pHandleSpaNavigation(source = "SPA") {
         if (nextUrl === op2pSpaLastUrl && source !== "SPA_INIT") return;
         op2pSpaLastUrl = nextUrl;
 
+        // Keep the existing panel alive across Facebook SPA route changes.
         init();
         try { refreshModes(); } catch (e) {}
         try { renderPremiumDashboard(); } catch (e) {}
@@ -1066,6 +1110,7 @@ function op2pStartSpaDetection() {
     window.addEventListener("popstate", () => op2pHandleSpaNavigation("popstate"), true);
     window.addEventListener("hashchange", () => op2pHandleSpaNavigation("hashchange"), true);
 
+    // Safety net for navigation methods Facebook changes outside our wrappers.
     setInterval(() => {
         try {
             const current = String(location.href || "");
@@ -1156,12 +1201,12 @@ function _0x03f() {
         #start{background:#16803c;}
         #stop{background:#b42318;}
         .sectionHead{display:flex;align-items:center;justify-content:space-between;margin-top:4px;padding:5px 6px;background:#1b1b1b;border:1px solid #333;border-radius:6px;color:#ddd;font-size:9px;font-weight:bold;cursor:pointer;}
-        .sectionHead span:last-child{font-size:8px;color:#aaa;}
+         .sectionHead span:last-child{font-size:8px;color:#aaa;}
         .sectionBody{display:none;padding-top:5px;}
         .sectionBody.open{display:block;}
         .commentTools{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-bottom:4px;}
         .commentTools button{padding:5px 2px;background:#262626;border:1px solid #444;font-size:8px;}
-        .commentList{max-height:80px;overflow-y:auto;background:#181818;border:1px solid #333;border-radius:5px;padding:4px;}
+         .commentList{max-height:80px;overflow-y:auto;background:#181818;border:1px solid #333;border-radius:5px;padding:4px;}
         .commentCategory{margin-bottom:3px;}
         .commentCategoryTitle{font-size:8px;font-weight:bold;color:#aaa;padding:2px;}
         .commentItem{display:flex;align-items:flex-start;gap:4px;padding:2px;color:#eee;font-size:8px;line-height:1.1;}
@@ -1179,15 +1224,15 @@ function _0x03f() {
         .info b{color:#fff;}
         .grid2{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:4px;}
         .close{margin-top:4px;background:#333;}
-        .statsBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
+         .statsBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
         .statsHead{display:flex;pointer-events:auto;user-select:none;justify-content:space-between;align-items:center;font-size:9px;font-weight:bold;cursor:pointer;}
         .statsBody{display:none;padding-top:5px;}
         .statsBody.open{display:block;}
         .statsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
-        .statsItem{padding:4px;background:#202020;border-radius:5px;font-size:7px;color:#aaa;text-align:center;}
-        .statsItem b{display:block;color:#fff;font-size:9px;margin-top:1px;}
+         .statsItem{padding:4px;background:#202020;border-radius:5px;font-size:7px;color:#aaa;text-align:center;}
+         .statsItem b{display:block;color:#fff;font-size:9px;margin-top:1px;}
         .statsReset{margin-top:5px;background:#292929;border:1px solid #444;font-size:8px;padding:5px;}
-        .securityBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
+         .securityBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
         .securityHead{display:flex;justify-content:space-between;align-items:center;font-size:9px;font-weight:bold;cursor:pointer;}
         .securityBody{display:none;padding-top:5px;}
         .securityBody.open{display:block;}
@@ -1197,8 +1242,8 @@ function _0x03f() {
         .securityGood{color:#4ade80!important;}
         .securityWatch{color:#facc15!important;}
         .securityBad{color:#fb7185!important;}
-        .securityActions{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:3px;}
-        .securityActions button{font-size:7px;padding:4px 2px;background:#292929;border:1px solid #444;}
+         .securityActions{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:3px;}
+         .securityActions button{font-size:7px;padding:4px 2px;background:#292929;border:1px solid #444;}
         .securityLog{display:none;max-height:80px;overflow:auto;margin-top:4px;background:#0f0f0f;border:1px solid #333;border-radius:5px;padding:4px;font-size:7px;color:#aaa;}
         .securityLog div{padding:2px 0;border-bottom:1px solid #222;}
         .updateBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
@@ -1216,7 +1261,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.7.6 • PREMIUM</span>
+            <span class="brandBadge">V11.6.1 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1309,6 +1354,7 @@ function _0x03f() {
             <div class="info">LEFT <b id="remaining">-</b></div>
         </div>
 
+
         <div class="statsBox">
             <div id="statsHead" class="statsHead">
                 <span>📊 LIVE STATISTICS</span>
@@ -1337,7 +1383,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.7.6</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.6.1</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -1409,11 +1455,11 @@ function _0x03f() {
 
     [scrollStepInput, scrollWaitInput, delayInput, minutesInput].forEach(input => {
         input.addEventListener("input", _0x03c);
-        input.addEventListener("change", _0x03cImmediate);
+        input.addEventListener("change", _0x03c);
     });
 
-    runMode.addEventListener("change", () => { _0x03cImmediate(); if (durationBox) durationBox.style.display = runMode.value === "minutes" ? "block" : "none"; });
-    autoRefreshCheck.addEventListener("change", () => { _0x03cImmediate(); op2pScheduleAutoRefresh(); });
+    runMode.addEventListener("change", _0x03c);
+    autoRefreshCheck.addEventListener("change", () => { _0x03c(); op2pScheduleAutoRefresh(); });
 
     const statsHead = $("statsHead");
     const statsBody = $("statsBody");
@@ -1450,6 +1496,7 @@ function _0x03f() {
     const updateCheckBtn = $("updateCheck");
     const updateOpenBtn = $("updateOpen");
     let latestUpdateUrl = "";
+    let latestUpdateVersion = _0x007;
 
     async function checkForUpdates(showResult = true) {
         try {
@@ -1467,6 +1514,7 @@ function _0x03f() {
                 } catch (_) {}
                 const latestCached = String(cached && (cached.latestClientVersion || cached.minClientVersion) || "").trim();
                 if (latestCached) {
+                    latestUpdateVersion = latestCached;
                     latestUpdateUrl = String((cached && cached.updateUrl) || "").trim();
                     updateLatest.textContent = latestCached;
                     const cmpCached = compareUiVersions(_0x007, latestCached);
@@ -1491,6 +1539,7 @@ function _0x03f() {
                 return false;
             }
             const latest = String(res.latestClientVersion || res.minClientVersion || _0x007).trim() || _0x007;
+            latestUpdateVersion = latest;
             latestUpdateUrl = String(res.updateUrl || "").trim();
             updateLatest.textContent = latest;
             const cmp = compareUiVersions(_0x007, latest);
@@ -1509,10 +1558,29 @@ function _0x03f() {
             }
             return true;
         } catch (e) {
+            let cached = null;
+            try {
+                const raw = localStorage.getItem(OP2P_POLICY_STORAGE);
+                cached = raw ? JSON.parse(raw) : null;
+            } catch (_) {}
+            const latestCached = String(cached && (cached.latestClientVersion || cached.minClientVersion) || "").trim();
+            if (latestCached) {
+                latestUpdateVersion = latestCached;
+                latestUpdateUrl = String((cached && cached.updateUrl) || "").trim();
+                updateLatest.textContent = latestCached;
+                const cmpCached = compareUiVersions(_0x007, latestCached);
+                updateLevel.textContent = cmpCached < 0 ? "UPDATE AVAILABLE • CACHED ▼" : "CURRENT • CACHED ▼";
+                updateLevel.className = cmpCached < 0 ? "securityWatch" : "securityGood";
+                updateStatus.textContent = "Using the last verified server update policy. Retry when online.";
+                updateOpenBtn.disabled = !latestUpdateUrl;
+                if (showResult) status.textContent = "UPDATE POLICY CACHED";
+                return true;
+            }
             updateLevel.textContent = "RETRY ▼";
-            updateStatus.textContent = "Unable to check updates right now.";
+            updateStatus.textContent = "Unable to check updates right now. Retry when the server is reachable.";
             updateLatest.textContent = "—";
             updateOpenBtn.disabled = false;
+            if (showResult) status.textContent = "UPDATE CHECK RETRY";
             return false;
         }
     }
@@ -1560,7 +1628,7 @@ function _0x03f() {
             dashLicenseMeta.textContent = licState + (op2pServerPolicy.customer ? " • " + op2pServerPolicy.customer : "");
             dashPlan.textContent = planText;
             dashPlan.className = "dashValue securityGood";
-            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.7.6");
+            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.6.1");
             dashBrowser.textContent = op2pServerPolicy.browserLocked ? "✓ LOCKED" : "⚠ UNBOUND";
             dashBrowser.className = "dashValue " + (op2pServerPolicy.browserLocked ? "securityGood" : "securityWatch");
             dashBrowserMeta.textContent = _0x015.browser + " " + _0x015.version;
@@ -1581,7 +1649,7 @@ function _0x03f() {
             dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE") + (op2pServerPolicy.securityAlerts ? " • alerts " + op2pServerPolicy.securityAlerts : "");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.7.6 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.6.1 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
@@ -1608,7 +1676,7 @@ function _0x03f() {
     updateOpenBtn.onclick = event => {
         event.stopPropagation();
         if (!latestUpdateUrl) return;
-        window.open(OP2P_UPDATE_CENTER_URL, "_blank", "noopener,noreferrer");
+        window.open("https://op2p.github.io/OP2P-LatestUpdate/index.html", "_blank", "noopener,noreferrer");
     };
     updateCurrent.textContent = _0x007;
     updateOpenBtn.disabled = true;
@@ -1754,24 +1822,21 @@ function _0x03f() {
         .then(() => _0x037())
         .then(() => _0x03e())
         .then(() => {
-            const persistedState = op2pRestoreRefreshState();
+            const restored = op2pRestoreRefreshState();
             refreshModes();
             renderStats();
             window.op2pSecurityRefresh();
             renderPremiumDashboard();
             op2pScheduleAutoRefresh();
             setInterval(renderPremiumDashboard, 2000);
-            if (persistedState && persistedState.wasRunning && selectedModes.size && !op2pSecurityBlocked()) {
+            if ((restored && restored.wasRunning) || op2pGetRunIntent()) {
                 setTimeout(() => {
                     try {
-                        if (!running) {
-                            start();
-                            renderPremiumDashboard();
+                        if (!op2pSecurityBlocked() && !securityPaused && !running && selectedModes.size && typeof op2pUiStart === "function") {
+                            op2pUiStart();
                         }
-                    } catch (e) {
-                        _0x019("RESUME_ERROR", String(e && e.message || e), "ERROR").catch(()=>{});
-                    }
-                }, 700);
+                    } catch (e) {}
+                }, 900);
             }
         });
 
@@ -1890,8 +1955,12 @@ function _0x03f() {
 
     runMode.onchange = () => {
         durationBox.style.display = runMode.value === "minutes" ? "block" : "none";
-        _0x03c();
+        _0x03d();
     };
+    [scrollStepInput, scrollWaitInput, delayInput, minutesInput].forEach(el => {
+        el.addEventListener("change", () => { _0x03d(); });
+        el.addEventListener("input", () => { _0x03c(); });
+    });
 
     function isVisible(el) {
         if (!(el instanceof HTMLElement)) return false;
@@ -1953,34 +2022,34 @@ function _0x03f() {
         let committed = false;
         let actionPerformed = false;
         try {
-            const button = findLikeButton();
-            if (!button) {
-                status.textContent = "LIKE NOT FOUND";
-                status.style.color = "#fb7185";
-                return false;
-            }
-            try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e){}
-            await wait(400);
+        const button = findLikeButton();
+        if (!button) {
+            status.textContent = "LIKE NOT FOUND";
+            status.style.color = "#fb7185";
+            return false;
+        }
+        try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e){}
+        await wait(400);
 
-            if (isAlreadyLiked(button)) {
-                status.textContent = "ALREADY LIKED";
-                status.style.color = "#ffaa00";
-                return false;
-            }
-            if (!await _0x02e("LIKE")) {
-                status.textContent = "SAFETY PAUSE";
-                status.style.color = "#facc15";
-                return false;
-            }
+        if (isAlreadyLiked(button)) {
+            status.textContent = "ALREADY LIKED";
+            status.style.color = "#ffaa00";
+            return false;
+        }
+        if (!await _0x02e("LIKE")) {
+            status.textContent = "SAFETY PAUSE";
+            status.style.color = "#facc15";
+            return false;
+        }
 
-            button.click();
-            actionPerformed = true;
-            incrementStat("like");
-            status.textContent = "LIKE";
-            status.style.color = "#4ade80";
-            const finalized = await finalizeServerAction("LIKE", actionToken, true);
-            committed = finalized;
-            return finalized;
+        button.click();
+        actionPerformed = true;
+        incrementStat("like");
+        status.textContent = "LIKE";
+        status.style.color = "#4ade80";
+        const finalized = await finalizeServerAction("LIKE", actionToken, true);
+        committed = finalized;
+        return finalized;
         } finally { if (!committed && !actionPerformed) await finalizeServerAction("LIKE", actionToken, false); }
     }
 
@@ -2018,28 +2087,28 @@ function _0x03f() {
         let committed = false;
         let actionPerformed = false;
         try {
-            const button = findFollowButton();
-            if (!button) {
-                status.textContent = "FOLLOW NOT FOUND";
-                status.style.color = "#fb7185";
-                return false;
-            }
-            try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e) {}
-            await wait(400);
-            if (!await _0x02e("FOLLOW")) {
-                status.textContent = "SAFETY PAUSE";
-                status.style.color = "#facc15";
-                return false;
-            }
+        const button = findFollowButton();
+        if (!button) {
+            status.textContent = "FOLLOW NOT FOUND";
+            status.style.color = "#fb7185";
+            return false;
+        }
+        try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e) {}
+        await wait(400);
+        if (!await _0x02e("FOLLOW")) {
+            status.textContent = "SAFETY PAUSE";
+            status.style.color = "#facc15";
+            return false;
+        }
 
-            button.click();
-            actionPerformed = true;
-            incrementStat("follow");
-            status.textContent = "FOLLOW";
-            status.style.color = "#60a5fa";
-            const finalized = await finalizeServerAction("FOLLOW", actionToken, true);
-            committed = finalized;
-            return finalized;
+        button.click();
+        actionPerformed = true;
+        incrementStat("follow");
+        status.textContent = "FOLLOW";
+        status.style.color = "#60a5fa";
+        const finalized = await finalizeServerAction("FOLLOW", actionToken, true);
+        committed = finalized;
+        return finalized;
         } finally { if (!committed && !actionPerformed) await finalizeServerAction("FOLLOW", actionToken, false); }
     }
 
@@ -2049,28 +2118,28 @@ function _0x03f() {
         let committed = false;
         let actionPerformed = false;
         try {
-            const button = findAddFriendButton();
-            if (!button) {
-                status.textContent = "ADD FRIEND NOT FOUND";
-                status.style.color = "#fb7185";
-                return false;
-            }
-            try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e) {}
-            await wait(400);
-            if (!await _0x02e("ADD FRIEND")) {
-                status.textContent = "SAFETY PAUSE";
-                status.style.color = "#facc15";
-                return false;
-            }
+        const button = findAddFriendButton();
+        if (!button) {
+            status.textContent = "ADD FRIEND NOT FOUND";
+            status.style.color = "#fb7185";
+            return false;
+        }
+        try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e) {}
+        await wait(400);
+        if (!await _0x02e("ADD FRIEND")) {
+            status.textContent = "SAFETY PAUSE";
+            status.style.color = "#facc15";
+            return false;
+        }
 
-            button.click();
-            actionPerformed = true;
-            incrementStat("friend");
-            status.textContent = "ADD FRIEND";
-            status.style.color = "#c084fc";
-            const finalized = await finalizeServerAction("FRIEND", actionToken, true);
-            committed = finalized;
-            return finalized;
+        button.click();
+        actionPerformed = true;
+        incrementStat("friend");
+        status.textContent = "ADD FRIEND";
+        status.style.color = "#c084fc";
+        const finalized = await finalizeServerAction("FRIEND", actionToken, true);
+        committed = finalized;
+        return finalized;
         } finally { if (!committed && !actionPerformed) await finalizeServerAction("FRIEND", actionToken, false); }
     }
 
@@ -2126,6 +2195,7 @@ function _0x03f() {
             lastCommentBox = box;
             lastSubmittedBox = box;
             lastSubmittedArticle = article;
+            lastSubmitTime = Date.now();
 
             try { box.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e){}
             await wait(700 + Math.random() * 900);
@@ -2182,25 +2252,25 @@ function _0x03f() {
         let committed = false;
         let actionPerformed = false;
         try {
-            let step = Number(scrollStepInput.value);
-            if (!Number.isFinite(step) || step <= 0) { step = 80; scrollStepInput.value = "80"; }
-            step = Math.min(200, Math.max(10, step));
+        let step = Number(scrollStepInput.value);
+        if (!Number.isFinite(step) || step <= 0) { step = 80; scrollStepInput.value = "80"; }
+        step = Math.min(200, Math.max(10, step));
 
-            let waitSeconds = Number(scrollWaitInput.value);
-            if (!Number.isFinite(waitSeconds) || waitSeconds < 0.1) { waitSeconds = 1; scrollWaitInput.value = "1"; }
+        let waitSeconds = Number(scrollWaitInput.value);
+        if (!Number.isFinite(waitSeconds) || waitSeconds < 0.1) { waitSeconds = 1; scrollWaitInput.value = "1"; }
 
-            const distance = Math.round(window.innerHeight * (step / 100));
-            window.scrollBy({ top:distance, left:0, behavior:"smooth" });
-            actionPerformed = true;
+        const distance = Math.round(window.innerHeight * (step / 100));
+        window.scrollBy({ top:distance, left:0, behavior:"smooth" });
+        actionPerformed = true;
 
-            incrementStat("scroll");
-            status.textContent = "AUTO SCROLL";
-            status.style.color = "#facc15";
+        incrementStat("scroll");
+        status.textContent = "AUTO SCROLL";
+        status.style.color = "#facc15";
 
-            await wait(waitSeconds * 1000);
-            const finalized = await finalizeServerAction("SCROLL", actionToken, true);
-            committed = finalized;
-            return finalized;
+        await wait(waitSeconds * 1000);
+        const finalized = await finalizeServerAction("SCROLL", actionToken, true);
+        committed = finalized;
+        return finalized;
         } finally { if (!committed && !actionPerformed) await finalizeServerAction("SCROLL", actionToken, false); }
     }
 
@@ -2352,8 +2422,6 @@ function _0x03f() {
 
         running = true;
         _0x016.running = true;
-        op2pSetRunIntent(true);
-        op2pPersistRefreshState();
         _0x019("START", "OP2P started").catch(()=>{});
         status.textContent = "RUNNING";
         status.style.color = "#4ade80";
@@ -2396,8 +2464,6 @@ function _0x03f() {
         timer = null;
         countdownTimer = null;
         durationTimer = null;
-        op2pClearPersistedRun();
-        op2pPersistRefreshState();
         next.textContent = "-";
         remainingEl.textContent = "-";
         if (op2pSecurityBlocked()) {
@@ -2408,6 +2474,8 @@ function _0x03f() {
             status.style.color = "#ff6666";
         }
         renderPremiumDashboard();
+        op2pClearPersistedRun();
+        try { op2pPersistRefreshState(); } catch (e) {}
     }
 
     function schedule() {
@@ -2446,6 +2514,9 @@ function _0x03f() {
     document.documentElement.appendChild(host);
 }
 
+
+
+
 const _0x040 = 60 * 1000; 
 let op2pV6HeartbeatTimer = null;
 let op2pV6Locked = false;
@@ -2456,6 +2527,7 @@ function op2pSecurityHardStop(reason = "SECURITY_LOCK") {
     const wasLocked = op2pV6Locked;
     op2pV6Locked = true;
 
+    // Remove the visible OP2P UI immediately when access is revoked/locked.
     try {
         const host = document.getElementById(HOST_ID);
         if (host) host.remove();
@@ -2556,7 +2628,6 @@ async function _0x045() {
     }
     return false;
 }
-
 function _0x046() {
     clearInterval(op2pSecurityPolicyTimer);
     op2pSecurityPolicyTimer = setInterval(() => _0x045().catch(()=>{}), 60 * 1000);
@@ -2589,11 +2660,12 @@ function _0x044() {
 }
 
 window.addEventListener("pagehide", () => {
-    try { _0x03cImmediate(); } catch (e) {}
+    try { _0x03d(); } catch (e) {}
     try { op2pPersistRefreshState(); } catch (e) {}
 }, true);
+
 window.addEventListener("beforeunload", () => {
-    try { _0x03cImmediate(); } catch (e) {}
+    try { _0x03d(); } catch (e) {}
     try { op2pPersistRefreshState(); } catch (e) {}
 }, true);
 
@@ -2601,9 +2673,8 @@ _0x01c().then(async ok => {
     if (!ok) return;
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_5_4"); } catch(e) {}
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_7_0"); } catch(e) {}
-    try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_7_4"); } catch(e) {}
-    try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_7_5"); } catch(e) {}
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_6_0"); } catch(e) {}
+    try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_7_6"); } catch(e) {}
     const freshPolicyOk = await op2pLoadServerPolicy(true);
     if (!freshPolicyOk) {
         op2pSecurityHardStop("SERVER_POLICY_UNAVAILABLE");
