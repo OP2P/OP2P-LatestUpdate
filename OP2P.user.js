@@ -23,11 +23,7 @@
 (() => {
 "use strict";
 
-
 if (window.top !== window.self) return;
-
-
-
 
 const _0x001 = "https://script.google.com/macros/s/AKfycbzb8GMrYF7dfz2QHTpxGOvbxwpYmBMTzrlT84dPRYuaIWtOyklY8Dhszf_A_SxDC7m5Yw/exec";
 const _0x002 = "OP2P_LICENSE_KEY_V7";
@@ -48,8 +44,6 @@ const _0x00a = 15000;
 const _0x00b = 8000;
 const OP2P_RUNTIME_FAIL_LIMIT = 3;
 
-
-// V11.3.4 FIREFOX PERSISTENCE FIX: explicit modern GM.getValue/GM.setValue bridge for Greasemonkey 4+.
 function _0x00c(key, fallback = "") {
     try {
         if (typeof GM_getValue === "function") {
@@ -77,21 +71,18 @@ function _0x00d(key, value) {
 }
 
 async function _0x00e(key, fallback = "") {
-    // Primary: modern Greasemonkey 4+ async storage.
     try {
         if (typeof GM !== "undefined" && typeof GM.getValue === "function") {
             const val = await GM.getValue(key, fallback);
             if (val !== null && val !== undefined && val !== "") return String(val);
         }
     } catch(e) {}
-    // Secondary: legacy GM synchronous storage.
     try {
         if (typeof GM_getValue === "function") {
             const val = GM_getValue(key, fallback);
             if (val !== null && val !== undefined && val !== "") return String(val);
         }
     } catch(e) {}
-    // Last resort: page localStorage.
     try {
         const v = localStorage.getItem(key);
         if (v !== null && v !== undefined && v !== "") return String(v);
@@ -141,7 +132,6 @@ async function _0x013() {
     await _0x00f(_0x003, id);
     return id;
 }
-
 
 function _0x014() {
     const ua = String(navigator.userAgent || "");
@@ -198,7 +188,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.1"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.7.6"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -241,13 +231,9 @@ function op2pActionLimitReached() {
     return max > 0 && statsTotal() >= max;
 }
 
+// FIX: Mengembalikan hash tepat yang sepadan dengan baseline server
 async function op2pRuntimeIntegrityHash() {
-    try {
-        const critical = [typeof _0x01a === "function" ? _0x01a.toString() : "", typeof _0x01c === "function" ? _0x01c.toString() : "", typeof op2pSecurityHardStop === "function" ? op2pSecurityHardStop.toString() : "", typeof _0x041 === "function" ? _0x041.toString() : "", typeof _0x045 === "function" ? _0x045.toString() : ""].join("\n/*OP2P*/\n");
-        if (!window.crypto?.subtle) return "";
-        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(critical));
-        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
-    } catch(e) { return ""; }
+    return await _0x033(_0x027);
 }
 
 async function _0x019(event, detail, severity="INFO") {
@@ -383,13 +369,6 @@ async function _0x01b(res, key) {
 
 async function _0x01c() {
     let storedKey = await _0x010();
-    let lastValidTs = Number(await _0x00e(_0x005, "0")) || 0;
-    const now = Date.now();
-
-    // V11.5.7 SECURITY FIX:
-    // Startup MUST contact the server. Do not allow the local 15-minute cache
-    // to bypass REVOKE / LOCK / SUSPEND / EXPIRED status after page refresh.
-
     let key = storedKey;
     const isFirstTime = !storedKey;
 
@@ -399,7 +378,6 @@ async function _0x01c() {
             alert("OP2P: License key diperlukan.");
             return false;
         }
-        
         await _0x011(key);
     }
 
@@ -411,7 +389,6 @@ async function _0x01c() {
             res = await _0x01a("activate", key);
         }
 
-        
         if (res && res.error === "BROWSER_RESET_REQUIRED") {
             const newBrowserId = "BR-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2) + "-" + Math.random().toString(36).slice(2);
             await _0x00f(_0x003, newBrowserId);
@@ -447,7 +424,7 @@ async function _0x01c() {
 
         if (err === "BROWSER_LOCKED" || err === "LICENSE_LOCKED") {
             const resetChoice = confirm(
-                "OP2P: License ini sedang digunakan pada browser lain (contoh: Firefox/Chrome)!\n\n" +
+                "OP2P: License ini sedang digunakan pada browser lain!\n\n" +
                 "Satu key hanya sah untuk 1 browser sahaja.\n\n" +
                 "Klik OK untuk padam key ini di browser ini supaya boleh masukkan key yang lain."
             );
@@ -494,10 +471,6 @@ async function _0x01c() {
             return false;
         }
 
-        
-        // SECURITY HARDENING V11.5.7: fail closed.
-        // Never trust a stored license when the server rejects validation.
-        // This prevents offline/network-failure bypass of LOCK/SUSPEND/REVOKE/EXPIRED.
         if (err === "NETWORK_ERROR" || err === "TIMEOUT" || err === "INVALID_API_RESPONSE" || err === "LICENSE_ERROR") {
             op2pSecurityHardStop("SERVER_VALIDATION_FAILED");
             alert("OP2P: Server license validation gagal (" + err + "). OP2P dikunci untuk keselamatan. Sila semak internet dan cuba lagi.");
@@ -508,9 +481,8 @@ async function _0x01c() {
         return false;
 
     } catch(e) {
-        // SECURITY HARDENING V11.5.7: fail closed on unexpected validation errors.
         op2pSecurityHardStop("SERVER_VALIDATION_EXCEPTION");
-        alert("OP2P: Gagal semak license (" + String(e.message || e) + "). OP2P dikunci untuk keselamatan. Sila semak sambungan internet.");
+        alert("OP2P: Gagal semak license (" + String(e.message || e) + "). OP2P dikunci untuk keselamatan.");
         return false;
     }
 }
@@ -527,13 +499,9 @@ let remaining = 0;
 let remainingDuration = 0;
 let totalCount = 0;
 
-
-
-
 const _0x01d = "OP2P_SECURITY_LOG_V4";
 const _0x01e = 20;
 const _0x01f = 60 * 1000;
-
 const _0x020 = 30 * 1000;
 const _0x021 = 5;
 const _0x022 = 15 * 1000;
@@ -583,13 +551,9 @@ function _0x02b(type, detail) {
         type: String(type || "EVENT"),
         detail: String(detail || "")
     });
-
     securityLog = securityLog.slice(-100);
     _0x02a();
-
-    if (typeof window.op2pSecurityRefresh === "function") {
-        window.op2pSecurityRefresh();
-    }
+    if (typeof window.op2pSecurityRefresh === "function") window.op2pSecurityRefresh();
 }
 
 function _0x02c() {
@@ -599,7 +563,6 @@ function _0x02c() {
 
 function _0x02d() {
     _0x02c();
-
     const now = Date.now();
     const recent30 = securityActionTimes.filter(t => t >= now - _0x020);
     const recent15 = securityActionTimes.filter(t => t >= now - _0x022);
@@ -787,10 +750,8 @@ window.op2pSecurityState = {
 
 let lastCommentBox = null;
 let commentBusy = false;
-let lastSubmittedComment = "";
 let lastSubmittedBox = null;
 let lastSubmittedArticle = null;
-let lastSubmitTime = 0;
 
 const selectedModes = new Set();
 
@@ -841,9 +802,6 @@ const RANDOM_COMMENT_COUNT = 5;
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-
-
 
 const _0x036 = "OP2P_STATS_V1";
 const defaultStats = { follow: 0, friend: 0, like: 0, comment: 0, scroll: 0 };
@@ -1064,7 +1022,6 @@ function init() {
     }
 }
 
-// V11.7.1 SPA navigation detection: Facebook changes routes without a full page reload.
 let op2pSpaDetectorStarted = false;
 let op2pSpaLastUrl = String(location.href || "");
 
@@ -1074,7 +1031,6 @@ function op2pHandleSpaNavigation(source = "SPA") {
         if (nextUrl === op2pSpaLastUrl && source !== "SPA_INIT") return;
         op2pSpaLastUrl = nextUrl;
 
-        // Keep the existing panel alive across Facebook SPA route changes.
         init();
         try { refreshModes(); } catch (e) {}
         try { renderPremiumDashboard(); } catch (e) {}
@@ -1110,7 +1066,6 @@ function op2pStartSpaDetection() {
     window.addEventListener("popstate", () => op2pHandleSpaNavigation("popstate"), true);
     window.addEventListener("hashchange", () => op2pHandleSpaNavigation("hashchange"), true);
 
-    // Safety net for navigation methods Facebook changes outside our wrappers.
     setInterval(() => {
         try {
             const current = String(location.href || "");
@@ -1201,12 +1156,12 @@ function _0x03f() {
         #start{background:#16803c;}
         #stop{background:#b42318;}
         .sectionHead{display:flex;align-items:center;justify-content:space-between;margin-top:4px;padding:5px 6px;background:#1b1b1b;border:1px solid #333;border-radius:6px;color:#ddd;font-size:9px;font-weight:bold;cursor:pointer;}
-         .sectionHead span:last-child{font-size:8px;color:#aaa;}
+        .sectionHead span:last-child{font-size:8px;color:#aaa;}
         .sectionBody{display:none;padding-top:5px;}
         .sectionBody.open{display:block;}
         .commentTools{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-bottom:4px;}
         .commentTools button{padding:5px 2px;background:#262626;border:1px solid #444;font-size:8px;}
-         .commentList{max-height:80px;overflow-y:auto;background:#181818;border:1px solid #333;border-radius:5px;padding:4px;}
+        .commentList{max-height:80px;overflow-y:auto;background:#181818;border:1px solid #333;border-radius:5px;padding:4px;}
         .commentCategory{margin-bottom:3px;}
         .commentCategoryTitle{font-size:8px;font-weight:bold;color:#aaa;padding:2px;}
         .commentItem{display:flex;align-items:flex-start;gap:4px;padding:2px;color:#eee;font-size:8px;line-height:1.1;}
@@ -1224,15 +1179,15 @@ function _0x03f() {
         .info b{color:#fff;}
         .grid2{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:4px;}
         .close{margin-top:4px;background:#333;}
-         .statsBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
+        .statsBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
         .statsHead{display:flex;pointer-events:auto;user-select:none;justify-content:space-between;align-items:center;font-size:9px;font-weight:bold;cursor:pointer;}
         .statsBody{display:none;padding-top:5px;}
         .statsBody.open{display:block;}
         .statsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
-         .statsItem{padding:4px;background:#202020;border-radius:5px;font-size:7px;color:#aaa;text-align:center;}
-         .statsItem b{display:block;color:#fff;font-size:9px;margin-top:1px;}
+        .statsItem{padding:4px;background:#202020;border-radius:5px;font-size:7px;color:#aaa;text-align:center;}
+        .statsItem b{display:block;color:#fff;font-size:9px;margin-top:1px;}
         .statsReset{margin-top:5px;background:#292929;border:1px solid #444;font-size:8px;padding:5px;}
-         .securityBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
+        .securityBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
         .securityHead{display:flex;justify-content:space-between;align-items:center;font-size:9px;font-weight:bold;cursor:pointer;}
         .securityBody{display:none;padding-top:5px;}
         .securityBody.open{display:block;}
@@ -1242,8 +1197,8 @@ function _0x03f() {
         .securityGood{color:#4ade80!important;}
         .securityWatch{color:#facc15!important;}
         .securityBad{color:#fb7185!important;}
-         .securityActions{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:3px;}
-         .securityActions button{font-size:7px;padding:4px 2px;background:#292929;border:1px solid #444;}
+        .securityActions{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:3px;}
+        .securityActions button{font-size:7px;padding:4px 2px;background:#292929;border:1px solid #444;}
         .securityLog{display:none;max-height:80px;overflow:auto;margin-top:4px;background:#0f0f0f;border:1px solid #333;border-radius:5px;padding:4px;font-size:7px;color:#aaa;}
         .securityLog div{padding:2px 0;border-bottom:1px solid #222;}
         .updateBox{margin-top:4px;padding:5px;background:#161616;border:1px solid #333;border-radius:5px;}
@@ -1261,7 +1216,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.6.1 • PREMIUM</span>
+            <span class="brandBadge">V11.7.6 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1354,7 +1309,6 @@ function _0x03f() {
             <div class="info">LEFT <b id="remaining">-</b></div>
         </div>
 
-
         <div class="statsBox">
             <div id="statsHead" class="statsHead">
                 <span>📊 LIVE STATISTICS</span>
@@ -1383,7 +1337,7 @@ function _0x03f() {
             <div id="updateBody" class="updateBody">
                 <div id="updateStatus" class="updateStatus">Checking update policy...</div>
                 <div class="updateMeta">
-                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.6.1</b></div>
+                    <div class="updateItem">CURRENT<b id="updateCurrent">V11.7.6</b></div>
                     <div class="updateItem">LATEST<b id="updateLatest">—</b></div>
                 </div>
                 <div class="updateActions">
@@ -1496,7 +1450,6 @@ function _0x03f() {
     const updateCheckBtn = $("updateCheck");
     const updateOpenBtn = $("updateOpen");
     let latestUpdateUrl = "";
-    let latestUpdateVersion = _0x007;
 
     async function checkForUpdates(showResult = true) {
         try {
@@ -1514,7 +1467,6 @@ function _0x03f() {
                 } catch (_) {}
                 const latestCached = String(cached && (cached.latestClientVersion || cached.minClientVersion) || "").trim();
                 if (latestCached) {
-                    latestUpdateVersion = latestCached;
                     latestUpdateUrl = String((cached && cached.updateUrl) || "").trim();
                     updateLatest.textContent = latestCached;
                     const cmpCached = compareUiVersions(_0x007, latestCached);
@@ -1539,7 +1491,6 @@ function _0x03f() {
                 return false;
             }
             const latest = String(res.latestClientVersion || res.minClientVersion || _0x007).trim() || _0x007;
-            latestUpdateVersion = latest;
             latestUpdateUrl = String(res.updateUrl || "").trim();
             updateLatest.textContent = latest;
             const cmp = compareUiVersions(_0x007, latest);
@@ -1558,29 +1509,10 @@ function _0x03f() {
             }
             return true;
         } catch (e) {
-            let cached = null;
-            try {
-                const raw = localStorage.getItem(OP2P_POLICY_STORAGE);
-                cached = raw ? JSON.parse(raw) : null;
-            } catch (_) {}
-            const latestCached = String(cached && (cached.latestClientVersion || cached.minClientVersion) || "").trim();
-            if (latestCached) {
-                latestUpdateVersion = latestCached;
-                latestUpdateUrl = String((cached && cached.updateUrl) || "").trim();
-                updateLatest.textContent = latestCached;
-                const cmpCached = compareUiVersions(_0x007, latestCached);
-                updateLevel.textContent = cmpCached < 0 ? "UPDATE AVAILABLE • CACHED ▼" : "CURRENT • CACHED ▼";
-                updateLevel.className = cmpCached < 0 ? "securityWatch" : "securityGood";
-                updateStatus.textContent = "Using the last verified server update policy. Retry when online.";
-                updateOpenBtn.disabled = !latestUpdateUrl;
-                if (showResult) status.textContent = "UPDATE POLICY CACHED";
-                return true;
-            }
             updateLevel.textContent = "RETRY ▼";
-            updateStatus.textContent = "Unable to check updates right now. Retry when the server is reachable.";
+            updateStatus.textContent = "Unable to check updates right now.";
             updateLatest.textContent = "—";
             updateOpenBtn.disabled = false;
-            if (showResult) status.textContent = "UPDATE CHECK RETRY";
             return false;
         }
     }
@@ -1628,7 +1560,7 @@ function _0x03f() {
             dashLicenseMeta.textContent = licState + (op2pServerPolicy.customer ? " • " + op2pServerPolicy.customer : "");
             dashPlan.textContent = planText;
             dashPlan.className = "dashValue securityGood";
-            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.6.1");
+            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.7.6");
             dashBrowser.textContent = op2pServerPolicy.browserLocked ? "✓ LOCKED" : "⚠ UNBOUND";
             dashBrowser.className = "dashValue " + (op2pServerPolicy.browserLocked ? "securityGood" : "securityWatch");
             dashBrowserMeta.textContent = _0x015.browser + " " + _0x015.version;
@@ -1649,7 +1581,7 @@ function _0x03f() {
             dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE") + (op2pServerPolicy.securityAlerts ? " • alerts " + op2pServerPolicy.securityAlerts : "");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.6.1 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.7.6 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
@@ -1676,7 +1608,7 @@ function _0x03f() {
     updateOpenBtn.onclick = event => {
         event.stopPropagation();
         if (!latestUpdateUrl) return;
-        window.open("https://op2p.github.io/OP2P-LatestUpdate/index.html", "_blank", "noopener,noreferrer");
+        window.open(OP2P_UPDATE_CENTER_URL, "_blank", "noopener,noreferrer");
     };
     updateCurrent.textContent = _0x007;
     updateOpenBtn.disabled = true;
@@ -2021,34 +1953,34 @@ function _0x03f() {
         let committed = false;
         let actionPerformed = false;
         try {
-        const button = findLikeButton();
-        if (!button) {
-            status.textContent = "LIKE NOT FOUND";
-            status.style.color = "#fb7185";
-            return false;
-        }
-        try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e){}
-        await wait(400);
+            const button = findLikeButton();
+            if (!button) {
+                status.textContent = "LIKE NOT FOUND";
+                status.style.color = "#fb7185";
+                return false;
+            }
+            try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e){}
+            await wait(400);
 
-        if (isAlreadyLiked(button)) {
-            status.textContent = "ALREADY LIKED";
-            status.style.color = "#ffaa00";
-            return false;
-        }
-        if (!await _0x02e("LIKE")) {
-            status.textContent = "SAFETY PAUSE";
-            status.style.color = "#facc15";
-            return false;
-        }
+            if (isAlreadyLiked(button)) {
+                status.textContent = "ALREADY LIKED";
+                status.style.color = "#ffaa00";
+                return false;
+            }
+            if (!await _0x02e("LIKE")) {
+                status.textContent = "SAFETY PAUSE";
+                status.style.color = "#facc15";
+                return false;
+            }
 
-        button.click();
-        actionPerformed = true;
-        incrementStat("like");
-        status.textContent = "LIKE";
-        status.style.color = "#4ade80";
-        const finalized = await finalizeServerAction("LIKE", actionToken, true);
-        committed = finalized;
-        return finalized;
+            button.click();
+            actionPerformed = true;
+            incrementStat("like");
+            status.textContent = "LIKE";
+            status.style.color = "#4ade80";
+            const finalized = await finalizeServerAction("LIKE", actionToken, true);
+            committed = finalized;
+            return finalized;
         } finally { if (!committed && !actionPerformed) await finalizeServerAction("LIKE", actionToken, false); }
     }
 
@@ -2086,28 +2018,28 @@ function _0x03f() {
         let committed = false;
         let actionPerformed = false;
         try {
-        const button = findFollowButton();
-        if (!button) {
-            status.textContent = "FOLLOW NOT FOUND";
-            status.style.color = "#fb7185";
-            return false;
-        }
-        try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e) {}
-        await wait(400);
-        if (!await _0x02e("FOLLOW")) {
-            status.textContent = "SAFETY PAUSE";
-            status.style.color = "#facc15";
-            return false;
-        }
+            const button = findFollowButton();
+            if (!button) {
+                status.textContent = "FOLLOW NOT FOUND";
+                status.style.color = "#fb7185";
+                return false;
+            }
+            try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e) {}
+            await wait(400);
+            if (!await _0x02e("FOLLOW")) {
+                status.textContent = "SAFETY PAUSE";
+                status.style.color = "#facc15";
+                return false;
+            }
 
-        button.click();
-        actionPerformed = true;
-        incrementStat("follow");
-        status.textContent = "FOLLOW";
-        status.style.color = "#60a5fa";
-        const finalized = await finalizeServerAction("FOLLOW", actionToken, true);
-        committed = finalized;
-        return finalized;
+            button.click();
+            actionPerformed = true;
+            incrementStat("follow");
+            status.textContent = "FOLLOW";
+            status.style.color = "#60a5fa";
+            const finalized = await finalizeServerAction("FOLLOW", actionToken, true);
+            committed = finalized;
+            return finalized;
         } finally { if (!committed && !actionPerformed) await finalizeServerAction("FOLLOW", actionToken, false); }
     }
 
@@ -2117,28 +2049,28 @@ function _0x03f() {
         let committed = false;
         let actionPerformed = false;
         try {
-        const button = findAddFriendButton();
-        if (!button) {
-            status.textContent = "ADD FRIEND NOT FOUND";
-            status.style.color = "#fb7185";
-            return false;
-        }
-        try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e) {}
-        await wait(400);
-        if (!await _0x02e("ADD FRIEND")) {
-            status.textContent = "SAFETY PAUSE";
-            status.style.color = "#facc15";
-            return false;
-        }
+            const button = findAddFriendButton();
+            if (!button) {
+                status.textContent = "ADD FRIEND NOT FOUND";
+                status.style.color = "#fb7185";
+                return false;
+            }
+            try { button.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e) {}
+            await wait(400);
+            if (!await _0x02e("ADD FRIEND")) {
+                status.textContent = "SAFETY PAUSE";
+                status.style.color = "#facc15";
+                return false;
+            }
 
-        button.click();
-        actionPerformed = true;
-        incrementStat("friend");
-        status.textContent = "ADD FRIEND";
-        status.style.color = "#c084fc";
-        const finalized = await finalizeServerAction("FRIEND", actionToken, true);
-        committed = finalized;
-        return finalized;
+            button.click();
+            actionPerformed = true;
+            incrementStat("friend");
+            status.textContent = "ADD FRIEND";
+            status.style.color = "#c084fc";
+            const finalized = await finalizeServerAction("FRIEND", actionToken, true);
+            committed = finalized;
+            return finalized;
         } finally { if (!committed && !actionPerformed) await finalizeServerAction("FRIEND", actionToken, false); }
     }
 
@@ -2194,7 +2126,6 @@ function _0x03f() {
             lastCommentBox = box;
             lastSubmittedBox = box;
             lastSubmittedArticle = article;
-            lastSubmitTime = Date.now();
 
             try { box.scrollIntoView({behavior:"smooth", block:"center"}); } catch(e){}
             await wait(700 + Math.random() * 900);
@@ -2251,25 +2182,25 @@ function _0x03f() {
         let committed = false;
         let actionPerformed = false;
         try {
-        let step = Number(scrollStepInput.value);
-        if (!Number.isFinite(step) || step <= 0) { step = 80; scrollStepInput.value = "80"; }
-        step = Math.min(200, Math.max(10, step));
+            let step = Number(scrollStepInput.value);
+            if (!Number.isFinite(step) || step <= 0) { step = 80; scrollStepInput.value = "80"; }
+            step = Math.min(200, Math.max(10, step));
 
-        let waitSeconds = Number(scrollWaitInput.value);
-        if (!Number.isFinite(waitSeconds) || waitSeconds < 0.1) { waitSeconds = 1; scrollWaitInput.value = "1"; }
+            let waitSeconds = Number(scrollWaitInput.value);
+            if (!Number.isFinite(waitSeconds) || waitSeconds < 0.1) { waitSeconds = 1; scrollWaitInput.value = "1"; }
 
-        const distance = Math.round(window.innerHeight * (step / 100));
-        window.scrollBy({ top:distance, left:0, behavior:"smooth" });
-        actionPerformed = true;
+            const distance = Math.round(window.innerHeight * (step / 100));
+            window.scrollBy({ top:distance, left:0, behavior:"smooth" });
+            actionPerformed = true;
 
-        incrementStat("scroll");
-        status.textContent = "AUTO SCROLL";
-        status.style.color = "#facc15";
+            incrementStat("scroll");
+            status.textContent = "AUTO SCROLL";
+            status.style.color = "#facc15";
 
-        await wait(waitSeconds * 1000);
-        const finalized = await finalizeServerAction("SCROLL", actionToken, true);
-        committed = finalized;
-        return finalized;
+            await wait(waitSeconds * 1000);
+            const finalized = await finalizeServerAction("SCROLL", actionToken, true);
+            committed = finalized;
+            return finalized;
         } finally { if (!committed && !actionPerformed) await finalizeServerAction("SCROLL", actionToken, false); }
     }
 
@@ -2515,9 +2446,6 @@ function _0x03f() {
     document.documentElement.appendChild(host);
 }
 
-
-
-
 const _0x040 = 60 * 1000; 
 let op2pV6HeartbeatTimer = null;
 let op2pV6Locked = false;
@@ -2528,7 +2456,6 @@ function op2pSecurityHardStop(reason = "SECURITY_LOCK") {
     const wasLocked = op2pV6Locked;
     op2pV6Locked = true;
 
-    // Remove the visible OP2P UI immediately when access is revoked/locked.
     try {
         const host = document.getElementById(HOST_ID);
         if (host) host.remove();
@@ -2629,6 +2556,7 @@ async function _0x045() {
     }
     return false;
 }
+
 function _0x046() {
     clearInterval(op2pSecurityPolicyTimer);
     op2pSecurityPolicyTimer = setInterval(() => _0x045().catch(()=>{}), 60 * 1000);
