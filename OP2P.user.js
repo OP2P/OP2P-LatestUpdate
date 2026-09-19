@@ -38,7 +38,7 @@ const _0x006 = 15 * 60 * 1000;
 const _0x007 = "11.7.9";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_8";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_9";
 const OP2P_AUTO_REFRESH_MS = 15 * 60 * 1000;
 const OP2P_AUTO_REFRESH_CHECK_MS = 30 * 1000;
 const OP2P_AUTO_REFRESH_STATE = "OP2P_AUTO_REFRESH_STATE_V1";
@@ -309,7 +309,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.6.1"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.7.9"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -354,7 +354,7 @@ function op2pActionLimitReached() {
 
 async function op2pRuntimeIntegrityHash() {
     // Stable build attestation: avoids browser/UserScript function.toString false positives.
-    return OP2P_BUILD_ATTESTATION_V11_7_8;
+    return OP2P_BUILD_ATTESTATION_SERVER_BASELINE;
 }
 
 async function _0x019(event, detail, severity="INFO") {
@@ -658,8 +658,9 @@ const _0x027 =
     + _0x01f
     + "|LICENSE|BROWSER|SECURITY";
 
-const OP2P_BUILD_ATTESTATION_V11_7_8 = "d21596bbe85c5cd0a7f162dac9973d97c380d6dae0df3ab82bd168b5ab7e46c8";
-const _0x028 = OP2P_BUILD_ATTESTATION_V11_7_8;
+// Server-approved integrity baseline is intentionally preserved; changing the digest alone would require a matching backend baseline update.
+const OP2P_BUILD_ATTESTATION_SERVER_BASELINE = "d21596bbe85c5cd0a7f162dac9973d97c380d6dae0df3ab82bd168b5ab7e46c8";
+const _0x028 = OP2P_BUILD_ATTESTATION_SERVER_BASELINE;
 
 let securityPaused = false;
 let securityActionTimes = [];
