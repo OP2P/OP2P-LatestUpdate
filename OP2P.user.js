@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.8
+// @version      11.7.9
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.8 | Stable action core | SPA | Persistent state | Idle auto-refresh | Server activity log */
+/* OP2P Secure Distribution V11.7.9 | Stable action core | SPA | Persistent state | Idle auto-refresh | Server activity log */
 (() => {
 "use strict";
 
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.8";
+const _0x007 = "11.7.9";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_8";
@@ -169,6 +169,117 @@ let op2pUiStop = null;
 let op2pUiStart = null;
 let op2pUiSchedule = null;
 
+// V11.7.9 managed runtime lifecycle: long-lived timers/listeners are owned centrally
+// so SPA navigation, hard-stop and UI rebuilds cannot leave orphaned runtime work behind.
+let op2pDashboardTimer = null;
+let op2pSpaPollTimer = null;
+let op2pWatchdogTimer = null;
+let op2pRuntimeRestoreTimer = null;
+let op2pRuntimeUpdateCheckTimer = null;
+let op2pRuntimeGeneration = 0;
+let op2pEmergencyKeyHandler = null;
+let op2pPopStateHandler = null;
+let op2pHashChangeHandler = null;
+let op2pPageHideHandler = null;
+let op2pBeforeUnloadHandler = null;
+
+function op2pClearManagedRuntimeTimers() {
+    try { clearInterval(op2pDashboardTimer); } catch(e) {}
+    try { clearInterval(op2pSpaPollTimer); } catch(e) {}
+    try { clearInterval(op2pWatchdogTimer); } catch(e) {}
+    try { clearTimeout(op2pRuntimeRestoreTimer); } catch(e) {}
+    try { clearTimeout(op2pRuntimeUpdateCheckTimer); } catch(e) {}
+    try { clearTimeout(op2pAutoRefreshTimer); } catch(e) {}
+    op2pDashboardTimer = null;
+    op2pSpaPollTimer = null;
+    op2pWatchdogTimer = null;
+    op2pRuntimeRestoreTimer = null;
+    op2pRuntimeUpdateCheckTimer = null;
+    op2pAutoRefreshTimer = null;
+}
+
+function op2pUnbindRuntimeListeners() {
+    try { if (op2pEmergencyKeyHandler) document.removeEventListener("keydown", op2pEmergencyKeyHandler, true); } catch(e) {}
+    try { if (op2pPopStateHandler) window.removeEventListener("popstate", op2pPopStateHandler, true); } catch(e) {}
+    try { if (op2pHashChangeHandler) window.removeEventListener("hashchange", op2pHashChangeHandler, true); } catch(e) {}
+    try { if (op2pPageHideHandler) window.removeEventListener("pagehide", op2pPageHideHandler, true); } catch(e) {}
+    try { if (op2pBeforeUnloadHandler) window.removeEventListener("beforeunload", op2pBeforeUnloadHandler, true); } catch(e) {}
+    op2pEmergencyKeyHandler = null;
+    op2pPopStateHandler = null;
+    op2pHashChangeHandler = null;
+    op2pPageHideHandler = null;
+    op2pBeforeUnloadHandler = null;
+}
+
+function op2pCleanupUiRuntime(removeHost = true) {
+    // Invalidate callbacks belonging to the previous UI instance.
+    op2pRuntimeGeneration++;
+    try { clearInterval(op2pDashboardTimer); } catch(e) {}
+    try { clearTimeout(op2pRuntimeRestoreTimer); } catch(e) {}
+    try { clearTimeout(op2pRuntimeUpdateCheckTimer); } catch(e) {}
+    try { clearTimeout(timer); } catch(e) {}
+    try { clearInterval(countdownTimer); } catch(e) {}
+    try { clearInterval(durationTimer); } catch(e) {}
+    try { clearTimeout(securityAutoResumeTimer); } catch(e) {}
+    op2pDashboardTimer = null;
+    op2pRuntimeRestoreTimer = null;
+    op2pRuntimeUpdateCheckTimer = null;
+    timer = null;
+    countdownTimer = null;
+    durationTimer = null;
+    securityAutoResumeTimer = null;
+    try {
+        if (op2pEmergencyKeyHandler) document.removeEventListener("keydown", op2pEmergencyKeyHandler, true);
+    } catch(e) {}
+    op2pEmergencyKeyHandler = null;
+    if (removeHost) {
+        try {
+            const host = document.getElementById(HOST_ID);
+            if (host) host.remove();
+        } catch(e) {}
+    }
+    op2pUiStop = null;
+    op2pUiStart = null;
+    op2pUiSchedule = null;
+    try { delete window.op2pDashboardRefresh; } catch(e) {}
+    try { delete window.op2pSecurityRefresh; } catch(e) {}
+    try { delete window.op2pPolicyRefresh; } catch(e) {}
+    try { delete window.op2pStatsRefresh; } catch(e) {}
+}
+
+function op2pHardCleanupRuntime() {
+    op2pCleanupUiRuntime(true);
+    try { clearInterval(op2pSpaPollTimer); } catch(e) {}
+    try { clearInterval(op2pWatchdogTimer); } catch(e) {}
+    try { clearInterval(op2pSecurityPolicyTimer); } catch(e) {}
+    try { clearInterval(op2pHealthHeartbeatTimer); } catch(e) {}
+    try { clearInterval(op2pV6HeartbeatTimer); } catch(e) {}
+    try { clearTimeout(op2pAutoRefreshTimer); } catch(e) {}
+    op2pSpaPollTimer = null;
+    op2pWatchdogTimer = null;
+    op2pSecurityPolicyTimer = null;
+    op2pHealthHeartbeatTimer = null;
+    op2pV6HeartbeatTimer = null;
+    op2pAutoRefreshTimer = null;
+    op2pUnbindRuntimeListeners();
+}
+function op2pSetupPageLifecycleListeners() {
+    if (!op2pPageHideHandler) {
+        op2pPageHideHandler = () => {
+            try { _0x03d(); } catch (e) {}
+            try { op2pPersistRefreshState(); } catch (e) {}
+        };
+        window.addEventListener("pagehide", op2pPageHideHandler, true);
+    }
+    if (!op2pBeforeUnloadHandler) {
+        op2pBeforeUnloadHandler = () => {
+            try { _0x03d(); } catch (e) {}
+            try { op2pPersistRefreshState(); } catch (e) {}
+        };
+        window.addEventListener("beforeunload", op2pBeforeUnloadHandler, true);
+    }
+}
+
 function _0x017(){
     try { const raw=localStorage.getItem(_0x008); const a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.slice(-50):[]; } catch(e){ return []; }
 }
@@ -249,6 +360,7 @@ async function op2pRuntimeIntegrityHash() {
 async function _0x019(event, detail, severity="INFO") {
     const now=Date.now();
     const item=_0x018(event,detail,severity);
+    try { if (typeof window.op2pDashboardRefresh === "function") window.op2pDashboardRefresh(); } catch(e) {}
     if (now-_0x016.lastSent < 1500 && severity === "INFO") return;
     _0x016.lastSent=now;
     try {
@@ -886,6 +998,7 @@ function incrementStat(type) {
     op2pStats[type] = Number(op2pStats[type] || 0) + 1;
     _0x038();
     if (typeof window.op2pStatsRefresh === "function") window.op2pStatsRefresh();
+    if (typeof window.op2pDashboardRefresh === "function") window.op2pDashboardRefresh();
 }
 
 async function _0x039() {
@@ -1053,11 +1166,13 @@ function op2pScheduleAutoRefresh() {
 }
 
 function init() {
+    if (op2pSecurityBlocked()) return;
     if (!document.documentElement) {
         setTimeout(init, 100);
         return;
     }
     if (!document.getElementById(HOST_ID)) {
+        op2pCleanupUiRuntime(false);
         _0x03f();
     }
 }
@@ -1068,14 +1183,15 @@ let op2pSpaLastUrl = String(location.href || "");
 
 function op2pHandleSpaNavigation(source = "SPA") {
     try {
+        if (op2pSecurityBlocked()) return;
         const nextUrl = String(location.href || "");
         if (nextUrl === op2pSpaLastUrl && source !== "SPA_INIT") return;
         op2pSpaLastUrl = nextUrl;
 
         // Keep the existing panel alive across Facebook SPA route changes.
         init();
-        try { refreshModes(); } catch (e) {}
-        try { renderPremiumDashboard(); } catch (e) {}
+        try { if (typeof refreshModes === "function") refreshModes(); } catch (e) {}
+        try { if (typeof renderPremiumDashboard === "function") renderPremiumDashboard(); } catch (e) {}
         try { op2pRestoreRefreshState(); } catch (e) {}
         _0x019("SPA_NAVIGATION", source + " -> " + nextUrl).catch(() => {});
     } catch (e) {}
@@ -1092,7 +1208,9 @@ function op2pStartSpaDetection() {
     try {
         history.pushState = function() {
             const result = originalPushState.apply(this, arguments);
-            setTimeout(() => op2pHandleSpaNavigation("pushState"), 0);
+            setTimeout(() => {
+                if (!op2pSecurityBlocked()) op2pHandleSpaNavigation("pushState");
+            }, 0);
             return result;
         };
     } catch (e) {}
@@ -1100,17 +1218,23 @@ function op2pStartSpaDetection() {
     try {
         history.replaceState = function() {
             const result = originalReplaceState.apply(this, arguments);
-            setTimeout(() => op2pHandleSpaNavigation("replaceState"), 0);
+            setTimeout(() => {
+                if (!op2pSecurityBlocked()) op2pHandleSpaNavigation("replaceState");
+            }, 0);
             return result;
         };
     } catch (e) {}
 
-    window.addEventListener("popstate", () => op2pHandleSpaNavigation("popstate"), true);
-    window.addEventListener("hashchange", () => op2pHandleSpaNavigation("hashchange"), true);
+    op2pPopStateHandler = () => op2pHandleSpaNavigation("popstate");
+    op2pHashChangeHandler = () => op2pHandleSpaNavigation("hashchange");
+    window.addEventListener("popstate", op2pPopStateHandler, true);
+    window.addEventListener("hashchange", op2pHashChangeHandler, true);
 
     // Safety net for navigation methods Facebook changes outside our wrappers.
-    setInterval(() => {
+    try { clearInterval(op2pSpaPollTimer); } catch(e) {}
+    op2pSpaPollTimer = setInterval(() => {
         try {
+            if (op2pSecurityBlocked()) return;
             const current = String(location.href || "");
             if (current !== op2pSpaLastUrl) op2pHandleSpaNavigation("url-poll");
         } catch (e) {}
@@ -1122,6 +1246,9 @@ let op2pAutoRefreshTimer = null;
 let op2pAutoRefreshDeadline = 0;
 
 function _0x03f() {
+    if (op2pSecurityBlocked()) return;
+    const runtimeGeneration = ++op2pRuntimeGeneration;
+    const isCurrentRuntime = () => runtimeGeneration === op2pRuntimeGeneration && !op2pSecurityBlocked();
     const host = document.createElement("div");
     host.id = HOST_ID;
     host.style.cssText = `
@@ -1259,7 +1386,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.7.8 • PREMIUM</span>
+            <span class="brandBadge">V11.7.9 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -1269,7 +1396,7 @@ function _0x03f() {
             <div class="dashCard"><div class="dashLabel">Plan</div><div class="dashValue" id="dashPlan">PRO</div><div class="dashMeta" id="dashPlanMeta">Server entitlement</div></div>
             <div class="dashCard"><div class="dashLabel">Browser</div><div class="dashValue" id="dashBrowser">✓ LOCKED</div><div class="dashMeta" id="dashBrowserMeta">Loading...</div></div>
             <div class="dashCard"><div class="dashLabel">Expiry</div><div class="dashValue" id="dashExpiry">—</div><div class="dashMeta" id="dashExpiryMeta">—</div></div>
-            <div class="dashCard"><div class="dashLabel">Client Health</div><div class="dashValue" id="dashHealth"><span class="dot"></span>ONLINE</div><div class="dashMeta" id="dashHealthMeta">Watchdog ready</div></div>
+            <div class="dashCard"><div class="dashLabel">Client Health</div><div class="dashValue" id="dashHealth"><span class="dot" id="dashHealthDot"></span><span id="dashHealthText">ONLINE</span></div><div class="dashMeta" id="dashHealthMeta">Watchdog ready</div></div>
             <div class="dashCard"><div class="dashLabel">Quota</div><div class="dashValue" id="dashQuota">0 / ∞</div><div class="dashMeta" id="dashQuotaMeta">Server action quota</div></div>
             <div class="dashCard"><div class="dashLabel">Integrity</div><div class="dashValue" id="dashIntegrity">CHECKING</div><div class="dashMeta" id="dashIntegrityMeta">Runtime verification</div></div>
             <div class="dashCard"><div class="dashLabel">Server</div><div class="dashValue" id="dashServer">ACTIVE</div><div class="dashMeta" id="dashServerMeta">Policy sync</div></div>
@@ -1603,6 +1730,7 @@ function _0x03f() {
     const dashBrowser = $("dashBrowser");
     const dashBrowserMeta = $("dashBrowserMeta");
     const dashHealth = $("dashHealth");
+    const dashHealthText = $("dashHealthText");
     const dashHealthMeta = $("dashHealthMeta");
     const dashIntegrity = $("dashIntegrity");
     const dashIntegrityMeta = $("dashIntegrityMeta");
@@ -1626,13 +1754,13 @@ function _0x03f() {
             dashLicenseMeta.textContent = licState + (op2pServerPolicy.customer ? " • " + op2pServerPolicy.customer : "");
             dashPlan.textContent = planText;
             dashPlan.className = "dashValue securityGood";
-            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.7.8");
+            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.7.9");
             dashBrowser.textContent = op2pServerPolicy.browserLocked ? "✓ LOCKED" : "⚠ UNBOUND";
             dashBrowser.className = "dashValue " + (op2pServerPolicy.browserLocked ? "securityGood" : "securityWatch");
             dashBrowserMeta.textContent = _0x015.browser + " " + _0x015.version;
             dashExpiry.textContent = expiry || "—";
             dashExpiryMeta.textContent = expiry ? "Session " + (op2pServerPolicy.sessionExpires || "—") : "Expiry unavailable";
-            dashHealth.innerHTML = '<span class="dot"></span>' + (healthOnline ? String(op2pServerPolicy.clientStatus || "ONLINE") : "READY");
+            if (dashHealthText) dashHealthText.textContent = healthOnline ? String(op2pServerPolicy.clientStatus || "ONLINE") : "READY";
             dashHealthMeta.textContent = "Recovery " + Number(_0x016.recoveryCount || 0) + " • " + (_0x016.lastEvent || "INIT");
             dashQuota.textContent = maxQuota > 0 ? (usedQuota + " / " + maxQuota) : (usedQuota + " / ∞");
             dashQuota.className = "dashValue " + (maxQuota > 0 && usedQuota >= maxQuota ? "securityBad" : "securityGood");
@@ -1647,9 +1775,11 @@ function _0x03f() {
             dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE") + (op2pServerPolicy.securityAlerts ? " • alerts " + op2pServerPolicy.securityAlerts : "");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.7.8 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.7.9 • " + planText + " • SERVER";
         } catch(e) {}
     }
+
+    window.op2pDashboardRefresh = renderPremiumDashboard;
 
     panel.style.display = "block";
 
@@ -1678,7 +1808,11 @@ function _0x03f() {
     };
     updateCurrent.textContent = _0x007;
     updateOpenBtn.disabled = true;
-    setTimeout(() => checkForUpdates(false), 1200);
+    clearTimeout(op2pRuntimeUpdateCheckTimer);
+    op2pRuntimeUpdateCheckTimer = setTimeout(() => {
+        if (!isCurrentRuntime()) return;
+        checkForUpdates(false);
+    }, 1200);
 
     function renderServerPolicyUi() {
         try {
@@ -1743,6 +1877,7 @@ function _0x03f() {
 
         securityPauseBtn.textContent = securityPaused ? "▶ RESUME" : "⏸ PAUSE";
         renderSecurityLog();
+        if (typeof window.op2pDashboardRefresh === "function") window.op2pDashboardRefresh();
     };
 
     securityHead.onclick = () => {
@@ -1803,36 +1938,52 @@ function _0x03f() {
         renderPremiumDashboard();
     };
 
-    document.addEventListener("keydown", event => {
+    if (op2pEmergencyKeyHandler) {
+        try { document.removeEventListener("keydown", op2pEmergencyKeyHandler, true); } catch(e) {}
+    }
+    op2pEmergencyKeyHandler = event => {
+        if (!isCurrentRuntime()) return;
         if (event.key === "Escape" && !event.repeat) {
             _0x032();
             status.textContent = "EMERGENCY STOP";
             status.style.color = "#fb7185";
             window.op2pSecurityRefresh();
         }
-    }, true);
+    };
+    document.addEventListener("keydown", op2pEmergencyKeyHandler, true);
 
     securityLicense.textContent = "✓ ACTIVE";
     securityBrowser.textContent = "✓ LOCKED";
 
     _0x029()
-        .then(() => _0x034())
-        .then(() => _0x037())
-        .then(() => _0x03e())
         .then(() => {
+            if (!isCurrentRuntime()) return;
+            return _0x034();
+        })
+        .then(() => {
+            if (!isCurrentRuntime()) return;
+            return _0x037();
+        })
+        .then(() => {
+            if (!isCurrentRuntime()) return;
+            return _0x03e();
+        })
+        .then(() => {
+            if (!isCurrentRuntime()) return;
             const restored = op2pRestoreRefreshState();
             refreshModes();
             renderStats();
             window.op2pSecurityRefresh();
             renderPremiumDashboard();
             op2pScheduleAutoRefresh();
-            setInterval(renderPremiumDashboard, 2000);
+            clearTimeout(op2pRuntimeRestoreTimer);
+            op2pRuntimeRestoreTimer = null;
             if ((restored && restored.wasRunning) || op2pGetRunIntent()) {
-                setTimeout(() => {
+                op2pRuntimeRestoreTimer = setTimeout(() => {
+                    op2pRuntimeRestoreTimer = null;
                     try {
-                        if (!op2pSecurityBlocked() && !securityPaused && !running && selectedModes.size && typeof op2pUiStart === "function") {
-                            op2pUiStart();
-                        }
+                        if (!isCurrentRuntime() || securityPaused || running || !selectedModes.size || typeof op2pUiStart !== "function") return;
+                        op2pUiStart();
                     } catch (e) {}
                 }, 900);
             }
@@ -2525,18 +2676,17 @@ function op2pSecurityHardStop(reason = "SECURITY_LOCK") {
     const wasLocked = op2pV6Locked;
     op2pV6Locked = true;
 
-    // Remove the visible OP2P UI immediately when access is revoked/locked.
-    try {
-        const host = document.getElementById(HOST_ID);
-        if (host) host.remove();
-    } catch(e) {}
-    try { clearInterval(op2pHealthHeartbeatTimer); } catch(e) {}
     if (!wasLocked) {
         try { _0x019("SECURITY_LOCKED", String(reason || "SECURITY_LOCK"), "ERROR").catch(()=>{}); } catch(e) {}
     }
+
     try {
         if (typeof stop === "function") stop(reason);
     } catch(e) {}
+
+    // Stop every long-lived scheduler/listener owned by OP2P.
+    try { op2pHardCleanupRuntime(); } catch(e) {}
+
     try {
         _0x016.running = false;
         _0x016.actionInProgress = false;
@@ -2632,7 +2782,8 @@ function _0x046() {
 }
 
 function _0x042() {
-    setInterval(() => {
+    try { clearInterval(op2pWatchdogTimer); } catch(e) {}
+    op2pWatchdogTimer = setInterval(() => {
         if (op2pSecurityBlocked() || !op2pUiSchedule || !_0x016.running || _0x016.actionInProgress || _0x016.timerActive) return;
         _0x016.recoveryCount++; _0x016.lastRecovery=Date.now();
         _0x019("SAFE_RESTART", "Scheduler watchdog recovered an idle runtime", "WARNING").catch(()=>{});
@@ -2657,16 +2808,6 @@ function _0x044() {
     );
 }
 
-window.addEventListener("pagehide", () => {
-    try { _0x03d(); } catch (e) {}
-    try { op2pPersistRefreshState(); } catch (e) {}
-}, true);
-
-window.addEventListener("beforeunload", () => {
-    try { _0x03d(); } catch (e) {}
-    try { op2pPersistRefreshState(); } catch (e) {}
-}, true);
-
 _0x01c().then(async ok => {
     if (!ok) return;
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_5_4"); } catch(e) {}
@@ -2679,6 +2820,7 @@ _0x01c().then(async ok => {
         try { alert("OP2P: Server policy tidak dapat disahkan. OP2P dikunci untuk keselamatan."); } catch(e) {}
         return;
     }
+    op2pSetupPageLifecycleListeners();
     init();
     op2pStartSpaDetection();
     renderServerPolicyUi?.();
