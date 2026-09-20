@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.9
+// @version      11.7.10
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.9 | Stable action core | SPA | Persistent state | Idle auto-refresh | Server activity log */
+/* OP2P Secure Distribution V11.7.10 | Stable action core | SPA | Persistent state | Idle auto-refresh | Background-resilient runtime | RAM-safe lifecycle | Refresh-resume latch */
 (() => {
 "use strict";
 
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.9";
+const _0x007 = "11.7.10";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_9";
@@ -168,6 +168,7 @@ const _0x016 = { running:false, actionInProgress:false, lastEvent:"INIT", lastDe
 let op2pUiStop = null;
 let op2pUiStart = null;
 let op2pUiSchedule = null;
+let op2pUiExecuteDue = null;
 
 // V11.7.9 managed runtime lifecycle: long-lived timers/listeners are owned centrally
 // so SPA navigation, hard-stop and UI rebuilds cannot leave orphaned runtime work behind.
@@ -177,11 +178,131 @@ let op2pWatchdogTimer = null;
 let op2pRuntimeRestoreTimer = null;
 let op2pRuntimeUpdateCheckTimer = null;
 let op2pRuntimeGeneration = 0;
+let op2pLifecycleRunIntent = false;
+let op2pResumeLatch = false;
+let op2pResumeRetryTimer = null;
+let op2pResumeAttempts = 0;
 let op2pEmergencyKeyHandler = null;
 let op2pPopStateHandler = null;
 let op2pHashChangeHandler = null;
 let op2pPageHideHandler = null;
 let op2pBeforeUnloadHandler = null;
+let op2pVisibilityChangeHandler = null;
+
+let op2pBackgroundWorker = null;
+let op2pBackgroundWorkerUrl = null;
+let op2pBackgroundWorkerTimer = null;
+let op2pBackgroundWorkerToken = 0;
+let op2pBackgroundWakeCallback = null;
+let op2pBackgroundFallbackTimer = null;
+let op2pScheduleDeadline = 0;
+
+function op2pEnsureBackgroundWorker() {
+    if (op2pBackgroundWorker) return true;
+    try {
+        if (!window.Worker || !window.Blob || !window.URL?.createObjectURL) return false;
+        const workerSource = `
+            let activeTimer = null;
+            self.onmessage = function(event) {
+                const data = event && event.data ? event.data : {};
+                if (data.cmd === "cancel") {
+                    if (activeTimer) clearTimeout(activeTimer);
+                    activeTimer = null;
+                    return;
+                }
+                if (data.cmd === "wait") {
+                    if (activeTimer) clearTimeout(activeTimer);
+                    const delay = Math.max(0, Number(data.delay) || 0);
+                    const token = data.token;
+                    activeTimer = setTimeout(() => {
+                        activeTimer = null;
+                        self.postMessage({ type: "wake", token });
+                    }, delay);
+                }
+            };
+        `;
+        const blob = new Blob([workerSource], { type: "application/javascript" });
+        op2pBackgroundWorkerUrl = URL.createObjectURL(blob);
+        const worker = new Worker(op2pBackgroundWorkerUrl);
+        worker.onmessage = event => {
+            try {
+                const data = event && event.data ? event.data : {};
+                if (data.type !== "wake") return;
+                if (Number(data.token) !== Number(op2pBackgroundWorkerToken)) return;
+                op2pBackgroundWorkerTimer = null;
+                const callback = op2pBackgroundWakeCallback;
+                op2pBackgroundWakeCallback = null;
+                if (typeof callback === "function") callback();
+            } catch (e) {}
+        };
+        worker.onerror = () => {
+            try { op2pCancelBackgroundWake(); } catch (e) {}
+            try { op2pTerminateBackgroundWorker(); } catch (e) {}
+        };
+        op2pBackgroundWorker = worker;
+        return true;
+    } catch (e) {
+        op2pBackgroundWorker = null;
+        if (op2pBackgroundWorkerUrl) {
+            try { URL.revokeObjectURL(op2pBackgroundWorkerUrl); } catch (_) {}
+            op2pBackgroundWorkerUrl = null;
+        }
+        return false;
+    }
+}
+
+function op2pCancelBackgroundWake() {
+    op2pBackgroundWorkerToken++;
+    op2pBackgroundWakeCallback = null;
+    if (op2pBackgroundFallbackTimer) {
+        try { clearTimeout(op2pBackgroundFallbackTimer); } catch (e) {}
+        op2pBackgroundFallbackTimer = null;
+    }
+    if (op2pBackgroundWorker) {
+        try { op2pBackgroundWorker.postMessage({ cmd: "cancel" }); } catch (e) {}
+    }
+    op2pBackgroundWorkerTimer = null;
+}
+
+function op2pScheduleBackgroundWake(delay, callback) {
+    op2pCancelBackgroundWake();
+    if (typeof callback !== "function") return false;
+    const boundedDelay = Math.max(0, Number(delay) || 0);
+    const token = ++op2pBackgroundWorkerToken;
+    op2pBackgroundWakeCallback = callback;
+
+    if (op2pEnsureBackgroundWorker()) {
+        try {
+            op2pBackgroundWorkerTimer = token;
+            op2pBackgroundWorker.postMessage({ cmd: "wait", delay: boundedDelay, token });
+            return true;
+        } catch (e) {
+            try { op2pTerminateBackgroundWorker(); } catch (_) {}
+        }
+    }
+
+    op2pBackgroundFallbackTimer = setTimeout(() => {
+        op2pBackgroundFallbackTimer = null;
+        if (token !== op2pBackgroundWorkerToken) return;
+        const cb = op2pBackgroundWakeCallback;
+        op2pBackgroundWakeCallback = null;
+        op2pBackgroundWorkerTimer = null;
+        if (typeof cb === "function") cb();
+    }, boundedDelay);
+    return false;
+}
+
+function op2pTerminateBackgroundWorker() {
+    op2pCancelBackgroundWake();
+    if (op2pBackgroundWorker) {
+        try { op2pBackgroundWorker.terminate(); } catch (e) {}
+    }
+    op2pBackgroundWorker = null;
+    if (op2pBackgroundWorkerUrl) {
+        try { URL.revokeObjectURL(op2pBackgroundWorkerUrl); } catch (e) {}
+    }
+    op2pBackgroundWorkerUrl = null;
+}
 
 function op2pClearManagedRuntimeTimers() {
     try { clearInterval(op2pDashboardTimer); } catch(e) {}
@@ -189,13 +310,16 @@ function op2pClearManagedRuntimeTimers() {
     try { clearInterval(op2pWatchdogTimer); } catch(e) {}
     try { clearTimeout(op2pRuntimeRestoreTimer); } catch(e) {}
     try { clearTimeout(op2pRuntimeUpdateCheckTimer); } catch(e) {}
+    try { clearTimeout(op2pResumeRetryTimer); } catch(e) {}
     try { clearTimeout(op2pAutoRefreshTimer); } catch(e) {}
+    try { op2pCancelBackgroundWake(); } catch(e) {}
     op2pDashboardTimer = null;
     op2pSpaPollTimer = null;
     op2pWatchdogTimer = null;
     op2pRuntimeRestoreTimer = null;
     op2pRuntimeUpdateCheckTimer = null;
     op2pAutoRefreshTimer = null;
+    op2pScheduleDeadline = 0;
 }
 
 function op2pUnbindRuntimeListeners() {
@@ -204,11 +328,13 @@ function op2pUnbindRuntimeListeners() {
     try { if (op2pHashChangeHandler) window.removeEventListener("hashchange", op2pHashChangeHandler, true); } catch(e) {}
     try { if (op2pPageHideHandler) window.removeEventListener("pagehide", op2pPageHideHandler, true); } catch(e) {}
     try { if (op2pBeforeUnloadHandler) window.removeEventListener("beforeunload", op2pBeforeUnloadHandler, true); } catch(e) {}
+    try { if (op2pVisibilityChangeHandler) document.removeEventListener("visibilitychange", op2pVisibilityChangeHandler, true); } catch(e) {}
     op2pEmergencyKeyHandler = null;
     op2pPopStateHandler = null;
     op2pHashChangeHandler = null;
     op2pPageHideHandler = null;
     op2pBeforeUnloadHandler = null;
+    op2pVisibilityChangeHandler = null;
 }
 
 function op2pCleanupUiRuntime(removeHost = true) {
@@ -217,10 +343,13 @@ function op2pCleanupUiRuntime(removeHost = true) {
     try { clearInterval(op2pDashboardTimer); } catch(e) {}
     try { clearTimeout(op2pRuntimeRestoreTimer); } catch(e) {}
     try { clearTimeout(op2pRuntimeUpdateCheckTimer); } catch(e) {}
+    try { clearTimeout(op2pResumeRetryTimer); } catch(e) {}
+    op2pResumeRetryTimer = null;
     try { clearTimeout(timer); } catch(e) {}
     try { clearInterval(countdownTimer); } catch(e) {}
     try { clearInterval(durationTimer); } catch(e) {}
     try { clearTimeout(securityAutoResumeTimer); } catch(e) {}
+    try { op2pCancelBackgroundWake(); } catch(e) {}
     op2pDashboardTimer = null;
     op2pRuntimeRestoreTimer = null;
     op2pRuntimeUpdateCheckTimer = null;
@@ -228,6 +357,7 @@ function op2pCleanupUiRuntime(removeHost = true) {
     countdownTimer = null;
     durationTimer = null;
     securityAutoResumeTimer = null;
+    op2pScheduleDeadline = 0;
     try {
         if (op2pEmergencyKeyHandler) document.removeEventListener("keydown", op2pEmergencyKeyHandler, true);
     } catch(e) {}
@@ -255,6 +385,7 @@ function op2pHardCleanupRuntime() {
     try { clearInterval(op2pHealthHeartbeatTimer); } catch(e) {}
     try { clearInterval(op2pV6HeartbeatTimer); } catch(e) {}
     try { clearTimeout(op2pAutoRefreshTimer); } catch(e) {}
+    try { op2pTerminateBackgroundWorker(); } catch(e) {}
     op2pSpaPollTimer = null;
     op2pWatchdogTimer = null;
     op2pSecurityPolicyTimer = null;
@@ -263,20 +394,87 @@ function op2pHardCleanupRuntime() {
     op2pAutoRefreshTimer = null;
     op2pUnbindRuntimeListeners();
 }
+function op2pPersistForPageUnload() {
+    // Snapshot the run intent BEFORE any browser lifecycle transition can make
+    // runtime state temporarily unavailable. Re-assert it after persistence so
+    // a second unload event can never downgrade a running session.
+    try {
+        const shouldResume = !!(running || _0x016.running || op2pGetResumeIntent());
+        op2pLifecycleRunIntent = shouldResume;
+        op2pResumeLatch = shouldResume;
+        op2pPersistRefreshState();
+        op2pSetRunIntent(shouldResume);
+        try { _0x03d(); } catch (_) {}
+    } catch (e) {}
+}
+
 function op2pSetupPageLifecycleListeners() {
     if (!op2pPageHideHandler) {
         op2pPageHideHandler = () => {
-            try { _0x03d(); } catch (e) {}
-            try { op2pPersistRefreshState(); } catch (e) {}
+            op2pPersistForPageUnload();
         };
         window.addEventListener("pagehide", op2pPageHideHandler, true);
     }
     if (!op2pBeforeUnloadHandler) {
         op2pBeforeUnloadHandler = () => {
-            try { _0x03d(); } catch (e) {}
-            try { op2pPersistRefreshState(); } catch (e) {}
+            op2pPersistForPageUnload();
         };
         window.addEventListener("beforeunload", op2pBeforeUnloadHandler, true);
+    }
+    if (!window.__op2pRefreshResumeLifecycleBound) {
+        window.__op2pRefreshResumeLifecycleBound = true;
+        window.addEventListener("pageshow", () => {
+            try {
+                op2pLifecycleRunIntent = op2pGetRunIntent();
+                op2pResumeLatch = op2pLifecycleRunIntent;
+                if (op2pGetResumeIntent()) op2pScheduleHardResume();
+            } catch (e) {}
+        }, true);
+        window.addEventListener("load", () => {
+            try {
+                if (op2pGetResumeIntent()) op2pScheduleHardResume();
+            } catch (e) {}
+        }, true);
+    }
+    if (!op2pVisibilityChangeHandler) {
+        op2pVisibilityChangeHandler = () => {
+            try {
+                if (op2pSecurityBlocked() || !running || !_0x016.timerActive) return;
+                const remainingMs = Math.max(0, Number(op2pScheduleDeadline || 0) - Date.now());
+
+                if (document.visibilityState === "hidden") {
+                    if (remainingMs <= 0) {
+                        op2pCancelBackgroundWake();
+                        if (typeof op2pUiExecuteDue === "function") op2pUiExecuteDue();
+                        return;
+                    }
+
+                    // Replace the page timer with the background timing helper.
+                    clearTimeout(timer);
+                    timer = null;
+                    op2pScheduleBackgroundWake(remainingMs, () => {
+                        try {
+                            if (op2pSecurityBlocked() || !running || !_0x016.timerActive) return;
+                            const dueMs = Math.max(0, Number(op2pScheduleDeadline || 0) - Date.now());
+                            if (dueMs > 50) {
+                                op2pScheduleBackgroundWake(dueMs, () => {
+                                    try {
+                                        if (!op2pSecurityBlocked() && running && typeof op2pUiExecuteDue === "function") {
+                                            op2pUiExecuteDue();
+                                        }
+                                    } catch (e) {}
+                                });
+                                return;
+                            }
+                            if (typeof op2pUiExecuteDue === "function") op2pUiExecuteDue();
+                        } catch (e) {}
+                    });
+                }
+                // When returning visible, keep the worker timer if one is active.
+                // It will execute the due action and the scheduler will arm the next cycle.
+            } catch (e) {}
+        };
+        document.addEventListener("visibilitychange", op2pVisibilityChangeHandler, true);
     }
 }
 
@@ -837,10 +1035,12 @@ function _0x032() {
     clearTimeout(timer);
     clearInterval(countdownTimer);
     clearInterval(durationTimer);
+    try { op2pCancelBackgroundWake(); } catch (e) {}
 
     timer = null;
     countdownTimer = null;
     durationTimer = null;
+    op2pScheduleDeadline = 0;
 
     securityActivityState = "PAUSED";
     _0x02b("EMERGENCY STOP", "All OP2P actions stopped");
@@ -1084,15 +1284,61 @@ function op2pGetCommentElement() {
 }
 
 function op2pSetRunIntent(value) {
-    try { localStorage.setItem(OP2P_RUN_INTENT_KEY, value ? "1" : "0"); } catch (e) {}
+    const next = !!value;
+    op2pResumeLatch = next;
+    op2pLifecycleRunIntent = next;
+    try { localStorage.setItem(OP2P_RUN_INTENT_KEY, next ? "1" : "0"); } catch (e) {}
 }
 
 function op2pGetRunIntent() {
     try { return localStorage.getItem(OP2P_RUN_INTENT_KEY) === "1"; } catch (e) { return false; }
 }
 
+function op2pGetResumeIntent() {
+    try { return !!(op2pResumeLatch || op2pLifecycleRunIntent || op2pGetRunIntent()); }
+    catch (e) { return !!(op2pResumeLatch || op2pLifecycleRunIntent); }
+}
+
 function op2pClearPersistedRun() {
+    op2pResumeLatch = false;
+    op2pLifecycleRunIntent = false;
     op2pSetRunIntent(false);
+}
+
+function op2pAttemptRuntimeResume(source = "BOOT") {
+    try {
+        if (!op2pGetResumeIntent()) return true;
+        if (op2pSecurityBlocked()) return false;
+        if (running || _0x016.running) return true;
+
+        op2pRestoreRefreshState();
+        try { refreshModes(); } catch (e) {}
+        if (!selectedModes.size) return false;
+        if (typeof op2pUiStart !== "function") return false;
+
+        // Reuse the original START routine so all existing timers, limits,
+        // statistics, security checks and action scheduling remain unchanged.
+        op2pUiStart();
+        return !!(running || _0x016.running);
+    } catch (e) {
+        try { _0x018("RESUME_ERROR", source + ": " + String(e && e.message || e), "ERROR"); } catch (_) {}
+        return false;
+    }
+}
+
+function op2pScheduleHardResume() {
+    clearTimeout(op2pResumeRetryTimer);
+    op2pResumeAttempts = 0;
+    const delays = [300, 800, 1500, 2500, 4000, 6500, 9000, 12000];
+    const attempt = (idx) => {
+        if (!op2pGetResumeIntent()) return;
+        op2pResumeAttempts = idx + 1;
+        if (op2pAttemptRuntimeResume("RETRY_" + (idx + 1))) return;
+        if (idx + 1 < delays.length) {
+            op2pResumeRetryTimer = setTimeout(() => attempt(idx + 1), delays[idx + 1]);
+        }
+    };
+    op2pResumeRetryTimer = setTimeout(() => attempt(0), delays[0]);
 }
 
 function op2pPersistRefreshState() {
@@ -1979,14 +2225,8 @@ function _0x03f() {
             op2pScheduleAutoRefresh();
             clearTimeout(op2pRuntimeRestoreTimer);
             op2pRuntimeRestoreTimer = null;
-            if ((restored && restored.wasRunning) || op2pGetRunIntent()) {
-                op2pRuntimeRestoreTimer = setTimeout(() => {
-                    op2pRuntimeRestoreTimer = null;
-                    try {
-                        if (!isCurrentRuntime() || securityPaused || running || !selectedModes.size || typeof op2pUiStart !== "function") return;
-                        op2pUiStart();
-                    } catch (e) {}
-                }, 900);
+            if ((restored && restored.wasRunning) || op2pGetResumeIntent()) {
+                op2pScheduleHardResume();
             }
         });
 
@@ -2572,6 +2812,7 @@ function _0x03f() {
 
         running = true;
         _0x016.running = true;
+        op2pSetRunIntent(true);
         _0x019("START", "OP2P started").catch(()=>{});
         status.textContent = "RUNNING";
         status.style.color = "#4ade80";
@@ -2611,9 +2852,11 @@ function _0x03f() {
         clearTimeout(timer);
         clearInterval(countdownTimer);
         clearInterval(durationTimer);
+        try { op2pCancelBackgroundWake(); } catch (e) {}
         timer = null;
         countdownTimer = null;
         durationTimer = null;
+        op2pScheduleDeadline = 0;
         next.textContent = "-";
         remainingEl.textContent = "-";
         if (op2pSecurityBlocked()) {
@@ -2628,30 +2871,49 @@ function _0x03f() {
         try { op2pPersistRefreshState(); } catch (e) {}
     }
 
+    async function executeScheduledAction() {
+        clearInterval(countdownTimer);
+        _0x016.timerActive = false;
+        timer = null;
+        op2pScheduleDeadline = 0;
+        if (op2pSecurityBlocked() || !running) return;
+        _0x016.actionInProgress = true;
+        try {
+            await executeMode();
+        } catch (e) {
+            _0x019("RUNTIME_ERROR", String(e && e.message || e), "ERROR").catch(()=>{});
+        }
+        _0x016.actionInProgress = false;
+        if (!op2pSecurityBlocked() && running) schedule();
+    }
+
     function schedule() {
         if (op2pSecurityBlocked() || !running) return;
         clearTimeout(timer);
         clearInterval(countdownTimer);
+        try { op2pCancelBackgroundWake(); } catch (e) {}
 
         remaining = getDelay();
+        op2pScheduleDeadline = Date.now() + remaining;
         updateCountdown();
 
         countdownTimer = setInterval(() => {
             if (!running) { clearInterval(countdownTimer); return; }
-            remaining -= 100;
-            if (remaining < 0) remaining = 0;
+            remaining = Math.max(0, op2pScheduleDeadline - Date.now());
             updateCountdown();
         }, 100);
 
         _0x016.timerActive = true;
-        timer = setTimeout(async () => {
-            clearInterval(countdownTimer);
-            _0x016.timerActive = false;
-            if (op2pSecurityBlocked() || !running) return;
-            _0x016.actionInProgress = true;
-            try { await executeMode(); } catch (e) { _0x019("RUNTIME_ERROR", String(e && e.message || e), "ERROR").catch(()=>{}); }
-            _0x016.actionInProgress = false;
-            if (!op2pSecurityBlocked() && running) schedule();
+
+        op2pUiExecuteDue = executeScheduledAction;
+        if (document.visibilityState === "hidden" && op2pScheduleBackgroundWake(remaining, executeScheduledAction)) {
+            timer = null;
+            return;
+        }
+
+        timer = setTimeout(() => {
+            op2pCancelBackgroundWake();
+            executeScheduledAction();
         }, remaining);
     }
 
@@ -2809,6 +3071,9 @@ function _0x044() {
     );
 }
 
+op2pResumeLatch = op2pGetRunIntent();
+op2pLifecycleRunIntent = op2pResumeLatch;
+
 _0x01c().then(async ok => {
     if (!ok) return;
     try { localStorage.removeItem("OP2P_SERVER_POLICY_V11_5_4"); } catch(e) {}
@@ -2824,8 +3089,9 @@ _0x01c().then(async ok => {
     op2pSetupPageLifecycleListeners();
     init();
     op2pStartSpaDetection();
-    renderServerPolicyUi?.();
+    try { if (typeof window.op2pPolicyRefresh === "function") window.op2pPolicyRefresh(); } catch (e) {}
     _0x044(); _0x042(); _0x043(); _0x046();
+    if (op2pGetResumeIntent()) op2pScheduleHardResume();
     _0x019("CLIENT_ONLINE", "Client started").catch(()=>{});
 });
 
