@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.10
+// @version      11.7.12
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.10 | Stable action core | SPA | Persistent state | Idle auto-refresh | Background-resilient runtime | RAM-safe lifecycle | Refresh-resume latch */
+/* OP2P Secure Distribution V11.7.12 | Stable action core | SPA | Persistent state | Idle auto-refresh | Background-resilient runtime | RAM-safe lifecycle | Tab-local runtime + Refresh-resume latch + Tab-local persisted state */
 (() => {
 "use strict";
 
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.10";
+const _0x007 = "11.7.12";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_9";
@@ -1268,6 +1268,27 @@ function op2pIsBusyForRefresh() {
 
 const OP2P_PERSIST_STATE_KEY = "OP2P_USER_PERSIST_STATE_V3";
 const OP2P_RUN_INTENT_KEY = "OP2P_USER_RUN_INTENT_V2";
+// V11.7.12: all refresh/runtime state is strictly TAB-LOCAL. The legacy
+// localStorage keys are retained only as identifiers for compatibility; they are
+// never used as a fallback because that would let a new tab inherit another
+// tab's RUNNING state.
+const OP2P_TAB_RUN_INTENT_KEY = "OP2P_TAB_RUN_INTENT_V2";
+const OP2P_TAB_PERSIST_STATE_KEY = "OP2P_TAB_PERSIST_STATE_V2";
+const OP2P_TAB_RUNTIME_ID_KEY = "OP2P_TAB_RUNTIME_ID_V1";
+
+function op2pGetTabRuntimeId() {
+    try {
+        let id = sessionStorage.getItem(OP2P_TAB_RUNTIME_ID_KEY);
+        if (id) return id;
+        const rnd = (window.crypto && typeof crypto.randomUUID === "function")
+            ? crypto.randomUUID()
+            : ("tab-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2));
+        sessionStorage.setItem(OP2P_TAB_RUNTIME_ID_KEY, rnd);
+        return rnd;
+    } catch (e) {
+        return "tab-fallback";
+    }
+}
 
 function op2pGetPanelElement() {
     try {
@@ -1287,11 +1308,24 @@ function op2pSetRunIntent(value) {
     const next = !!value;
     op2pResumeLatch = next;
     op2pLifecycleRunIntent = next;
-    try { localStorage.setItem(OP2P_RUN_INTENT_KEY, next ? "1" : "0"); } catch (e) {}
+    // IMPORTANT: sessionStorage is isolated per Facebook tab but survives a
+    // normal page refresh in that tab. Never mirror RUNNING into localStorage.
+    try { sessionStorage.setItem(OP2P_TAB_RUN_INTENT_KEY, next ? "1" : "0"); } catch (e) {}
 }
 
 function op2pGetRunIntent() {
-    try { return localStorage.getItem(OP2P_RUN_INTENT_KEY) === "1"; } catch (e) { return false; }
+    try {
+        const tabValue = sessionStorage.getItem(OP2P_TAB_RUN_INTENT_KEY);
+        if (tabValue === "1") return true;
+        if (tabValue === "0") return false;
+
+        // New tab: start clean. Do not inherit the legacy global latch from
+        // another Facebook tab. A normal refresh keeps sessionStorage intact.
+        sessionStorage.setItem(OP2P_TAB_RUN_INTENT_KEY, "0");
+        return false;
+    } catch (e) {
+        return false;
+    }
 }
 
 function op2pGetResumeIntent() {
@@ -1358,7 +1392,8 @@ function op2pPersistRefreshState() {
             savedAt: Date.now()
         };
         const raw = JSON.stringify(state);
-        localStorage.setItem(OP2P_PERSIST_STATE_KEY, raw);
+        // TAB-LOCAL IS AUTHORITATIVE: a new tab must never restore another tab's runtime state. sessionStorage survives refresh in the same tab.
+        try { sessionStorage.setItem(OP2P_TAB_PERSIST_STATE_KEY, raw); } catch (e) {}
         try { sessionStorage.setItem(OP2P_AUTO_REFRESH_STATE, raw); } catch (e) {}
         op2pSetRunIntent(state.wasRunning);
         return true;
@@ -1367,7 +1402,8 @@ function op2pPersistRefreshState() {
 
 function op2pRestoreRefreshState() {
     try {
-        const raw = localStorage.getItem(OP2P_PERSIST_STATE_KEY) || sessionStorage.getItem(OP2P_AUTO_REFRESH_STATE);
+        const raw = sessionStorage.getItem(OP2P_TAB_PERSIST_STATE_KEY)
+            || sessionStorage.getItem(OP2P_AUTO_REFRESH_STATE);
         if (!raw) return null;
         const state = JSON.parse(raw);
         if (Array.isArray(state.selectedModes)) {
@@ -2022,7 +2058,7 @@ function _0x03f() {
             dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE") + (op2pServerPolicy.securityAlerts ? " • alerts " + op2pServerPolicy.securityAlerts : "");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.7.9 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.7.11 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
@@ -3047,10 +3083,39 @@ function _0x046() {
 function _0x042() {
     try { clearInterval(op2pWatchdogTimer); } catch(e) {}
     op2pWatchdogTimer = setInterval(() => {
-        if (op2pSecurityBlocked() || !op2pUiSchedule || !_0x016.running || _0x016.actionInProgress || _0x016.timerActive) return;
-        _0x016.recoveryCount++; _0x016.lastRecovery=Date.now();
-        _0x019("SAFE_RESTART", "Scheduler watchdog recovered an idle runtime", "WARNING").catch(()=>{});
-        try { op2pUiSchedule(); } catch(e) { _0x019("SAFE_RESTART_FAILED", String(e&&e.message||e), "ERROR").catch(()=>{}); }
+        if (op2pSecurityBlocked()) return;
+
+        // V11.7.11: a tab may retain the RUNNING intent while its local
+        // runtime was interrupted by SPA rebuilds, tab suspension, or a
+        // failed lifecycle transition. Rehydrate that tab only; never copy
+        // another tab's runtime flags.
+        if (op2pGetResumeIntent() && !running && !_0x016.running && !securityPaused && typeof op2pUiStart === "function") {
+            try {
+                if (op2pAttemptRuntimeResume("WATCHDOG_RESUME")) return;
+            } catch (e) {}
+        }
+
+        if (!op2pUiSchedule || !_0x016.running || _0x016.actionInProgress) return;
+
+        // Existing watchdog behavior: arm the scheduler if no timer is active.
+        if (!_0x016.timerActive) {
+            _0x016.recoveryCount++; _0x016.lastRecovery=Date.now();
+            _0x019("SAFE_RESTART", "Scheduler watchdog recovered an idle runtime", "WARNING").catch(()=>{});
+            try { op2pUiSchedule(); } catch(e) { _0x019("SAFE_RESTART_FAILED", String(e&&e.message||e), "ERROR").catch(()=>{}); }
+            return;
+        }
+
+        // V11.7.11 liveness check: timerActive=true must have a real wake
+        // source. If the wake source disappeared, re-arm the scheduler.
+        const hasPageTimer = !!timer;
+        const hasBackgroundWake = !!op2pBackgroundWorkerTimer && typeof op2pBackgroundWakeCallback === "function";
+        const hasFallbackWake = !!op2pBackgroundFallbackTimer;
+        if (!hasPageTimer && !hasBackgroundWake && !hasFallbackWake) {
+            _0x016.timerActive = false;
+            _0x016.recoveryCount++; _0x016.lastRecovery=Date.now();
+            _0x019("RUNTIME_WAKE_RECOVER", "Runtime wake source disappeared; scheduler re-armed", "WARNING").catch(()=>{});
+            try { op2pUiSchedule(); } catch(e) { _0x019("RUNTIME_WAKE_RECOVER_FAILED", String(e&&e.message||e), "ERROR").catch(()=>{}); }
+        }
     }, _0x00a);
 }
 
@@ -3071,6 +3136,10 @@ function _0x044() {
     );
 }
 
+op2pGetTabRuntimeId();
+// V11.7.12: explicitly ignore legacy global RUNNING markers. The active tab
+// owns its own sessionStorage runtime state.
+try { localStorage.removeItem(OP2P_RUN_INTENT_KEY); } catch (e) {}
 op2pResumeLatch = op2pGetRunIntent();
 op2pLifecycleRunIntent = op2pResumeLatch;
 
