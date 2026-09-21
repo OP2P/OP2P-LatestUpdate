@@ -19,7 +19,7 @@
 // @connect      script.googleusercontent.com
 // ==/UserScript==
 
-/* OP2P Secure Distribution V11.7.13 | Stable action core | SPA | Persistent state | 15-minute auto-refresh | Background-resilient runtime | RAM-safe lifecycle | Tab-local runtime + Refresh-resume latch + Tab-local persisted state */
+/* OP2P Secure Distribution V11.7.14 | Stable action core | SPA | Persistent state | 15-minute auto-refresh | Background-resilient runtime | RAM-safe lifecycle | Tab-local runtime + Refresh-resume latch + Tab-local persisted state */
 (() => {
 "use strict";
 
@@ -35,7 +35,7 @@ const _0x003 = "OP2P_BROWSER_ID_V7";
 const _0x004 = "OP2P_SESSION_ID_V2";
 const _0x005 = "OP2P_LAST_VALID_TS_V1";
 const _0x006 = 15 * 60 * 1000; 
-const _0x007 = "11.7.13";
+const _0x007 = "11.7.14";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_9";
@@ -1479,7 +1479,7 @@ function op2pRestoreRefreshState() {
 }
 
 function op2pDoIdleRefresh() {
-    // V11.7.13: AUTO-REFRESH is a wall-clock browser refresh, not an idle-only
+    // V11.7.14: AUTO-REFRESH is a wall-clock browser refresh, not an idle-only
     // refresh. When enabled, refresh every 15 minutes even while OP2P is RUNNING.
     // Persisting state + RUN_INTENT immediately before reload lets the fresh
     // tab restore settings and resume the local runtime.
