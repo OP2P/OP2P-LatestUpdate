@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OP2P1v1
 // @namespace    https://example.com/
-// @version      11.7.13
+// @version      11.7.14
 // @updateURL    https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @downloadURL  https://raw.githubusercontent.com/OP2P/OP2P-LatestUpdate/main/OP2P.user.js
 // @description  OP2P1 Premium Dashboard with hardened license security, audit, browser identity, health monitoring and secure fail-closed recovery
@@ -39,6 +39,15 @@ const _0x007 = "11.7.13";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
 const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_9";
+
+// V11.7.14: Coordinate periodic server traffic across tabs sharing one browser ID.
+// RUN/STOP state remains tab-local; this only reduces redundant telemetry/policy/heartbeat bursts.
+const OP2P_TAB_REQUEST_COORD_PREFIX = "OP2P_TAB_REQUEST_COORD_V1_";
+const OP2P_HEALTH_GLOBAL_GAP_MS = 10000;
+const OP2P_HEARTBEAT_GLOBAL_GAP_MS = 45000;
+const OP2P_POLICY_GLOBAL_GAP_MS = 45000;
+const OP2P_RATE_LIMIT_COOLDOWN_MS = 15000;
+const OP2P_STARTUP_JITTER_MAX_MS = 2500;
 const OP2P_AUTO_REFRESH_MS = 15 * 60 * 1000;
 const OP2P_AUTO_REFRESH_CHECK_MS = 30 * 1000;
 const OP2P_AUTO_REFRESH_STATE = "OP2P_AUTO_REFRESH_STATE_V1";
@@ -488,6 +497,37 @@ function _0x018(event, detail, severity="INFO") {
     return item;
 }
 
+function op2pRequestCoordKey(kind, browserId) {
+    return OP2P_TAB_REQUEST_COORD_PREFIX + String(kind || "REQ") + "_" + String(browserId || "UNKNOWN");
+}
+function op2pRequestCoordRead(kind, browserId) {
+    try { const raw=localStorage.getItem(op2pRequestCoordKey(kind,browserId)); if(!raw) return null; const data=JSON.parse(raw); return data&&typeof data==="object"?data:null; } catch(e) { return null; }
+}
+function op2pRequestCoordWrite(kind, browserId, data) {
+    try { localStorage.setItem(op2pRequestCoordKey(kind,browserId),JSON.stringify(data||{})); return true; } catch(e) { return false; }
+}
+function op2pRequestCoordAllowed(kind, browserId, gapMs) {
+    const now=Date.now();
+    const current=op2pRequestCoordRead(kind,browserId);
+    if(current&&Number(current.ts||0)>0&&now-Number(current.ts)<gapMs) return false;
+    op2pRequestCoordWrite(kind,browserId,{ts:now});
+    return true;
+}
+function op2pRequestCoordSetResult(kind, browserId, result) {
+    try { op2pRequestCoordWrite(kind,browserId,Object.assign({},result||{},{ts:Date.now()})); } catch(e) {}
+}
+function op2pRequestCoordGetResult(kind, browserId) { return op2pRequestCoordRead(kind,browserId); }
+function op2pRateLimitCooldownActive() {
+    try { return Number(localStorage.getItem("OP2P_RATE_LIMIT_COOLDOWN_UNTIL_V1")||0)>Date.now(); } catch(e) { return false; }
+}
+function op2pMarkRateLimitCooldown() {
+    try { localStorage.setItem("OP2P_RATE_LIMIT_COOLDOWN_UNTIL_V1",String(Date.now()+OP2P_RATE_LIMIT_COOLDOWN_MS)); } catch(e) {}
+}
+function op2pStartupJitter() {
+    const delay=Math.floor(Math.random()*(OP2P_STARTUP_JITTER_MAX_MS+1));
+    return new Promise(resolve=>setTimeout(resolve,delay));
+}
+
 function op2pNormalizePolicy(policy) {
     const p = policy && typeof policy === "object" ? policy : {};
     const srcFeatures = p.features && typeof p.features === "object" ? p.features : {};
@@ -564,8 +604,12 @@ async function _0x019(event, detail, severity="INFO") {
     try {
         const key=String(await _0x010()||"").trim();
         if(!key) return;
-        const res=await _0x01a("client_health", key, {health_event:item.event,health_detail:item.detail,health_severity:item.severity,runtime_integrity_hash:await op2pRuntimeIntegrityHash(),plan:op2pServerPolicy.plan});
-        if(res && res.ok!==true && res.error) _0x016.lastDetail="Health send: "+res.error;
+        const browserId=await _0x013();
+        if(!op2pRequestCoordAllowed("HEALTH",browserId,OP2P_HEALTH_GLOBAL_GAP_MS)) return;
+        if(op2pRateLimitCooldownActive()) return;
+        const res=await _0x01a("client_health",key,{health_event:item.event,health_detail:item.detail,health_severity:item.severity,runtime_integrity_hash:await op2pRuntimeIntegrityHash(),plan:op2pServerPolicy.plan});
+        if(res&&res.error==="RATE_LIMITED"){op2pMarkRateLimitCooldown();_0x016.lastDetail="Health send: RATE_LIMITED (cooldown)";return;}
+        if(res&&res.ok!==true&&res.error)_0x016.lastDetail="Health send: "+res.error;
     } catch(e) {}
 }
 
@@ -710,6 +754,7 @@ async function _0x01c() {
 
     try {
         let action = storedKey ? "validate" : "activate";
+        await op2pStartupJitter();
         let res = await _0x01a(action, key);
 
         if (res && res.error === "LICENSE_NOT_ACTIVATED") {
@@ -800,6 +845,12 @@ async function _0x01c() {
         }
 
         
+        if(err==="RATE_LIMITED"||err==="ADMIN_RATE_LIMITED"){
+            op2pMarkRateLimitCooldown();
+            try{alert("OP2P: Server sedang menerima terlalu banyak request daripada tab-tab yang aktif. Sila tunggu seketika; OP2P tidak menganggap license anda invalid.");}catch(e){}
+            return false;
+        }
+
         // SECURITY HARDENING V11.5.7: fail closed.
         // Never trust a stored license when the server rejects validation.
         // This prevents offline/network-failure bypass of LOCK/SUSPEND/REVOKE/EXPIRED.
@@ -3004,16 +3055,28 @@ async function _0x041(showAlert = false) {
     if (op2pV6Locked) return false;
 
     try {
-        const key = String(await _0x010() || "").trim();
-        if (!key) return false;
-        const res = await _0x01a("heartbeat", key);
-        if (res && res.ok === true && res.status === "ACTIVE") {
-            op2pHeartbeatFailures = 0;
-            void _0x00f(_0x005, String(Date.now()));
+        const key=String(await _0x010()||"").trim();
+        if(!key) return false;
+        const browserId=await _0x013();
+        if(op2pRateLimitCooldownActive()) return true;
+        if(!op2pRequestCoordAllowed("HEARTBEAT",browserId,OP2P_HEARTBEAT_GLOBAL_GAP_MS)){
+            const shared=op2pRequestCoordGetResult("HEARTBEAT",browserId);
+            if(shared&&shared.ok===true&&shared.status==="ACTIVE"){
+                op2pHeartbeatFailures=0;
+                void _0x00f(_0x005,String(shared.ts||Date.now()));
+                return true;
+            }
             return true;
         }
-
-        const err = String((res && res.error) || "LICENSE_ERROR");
+        const res=await _0x01a("heartbeat",key);
+        op2pRequestCoordSetResult("HEARTBEAT",browserId,{ok:res&&res.ok===true,status:res&&res.status,error:res&&res.error});
+        if(res&&res.ok===true&&res.status==="ACTIVE"){
+            op2pHeartbeatFailures=0;
+            void _0x00f(_0x005,String(Date.now()));
+            return true;
+        }
+        const err=String((res&&res.error)||"LICENSE_ERROR");
+        if(err==="RATE_LIMITED"){op2pMarkRateLimitCooldown();return true;}
         if (["BROWSER_RESET_REQUIRED","BROWSER_LOCKED","LICENSE_LOCKED","LICENSE_MANUALLY_LOCKED","LICENSE_INACTIVE","LICENSE_REVOKED","LICENSE_EXPIRED","SYSTEM_KILLED","CLIENT_UPDATE_REQUIRED","SESSION_INVALID","SESSION_EXPIRED","MISSING_SESSION"].includes(err)) {
             op2pSecurityHardStop(err);
             if (showAlert) { try { alert("OP2P: License/security session tidak sah (" + err + ")."); } catch(e) {} }
@@ -3044,6 +3107,9 @@ async function _0x045() {
     try {
         const key = String(await _0x010() || "").trim();
         if (!key) return false;
+        const browserId=await _0x013();
+        if(op2pRateLimitCooldownActive()) return true;
+        if(!op2pRequestCoordAllowed("POLICY",browserId,OP2P_POLICY_GLOBAL_GAP_MS)) return true;
         const res = await _0x01a("security_policy", key);
         if (res && res.ok === true) {
             op2pPolicyFailures = 0;
@@ -3053,6 +3119,7 @@ async function _0x045() {
             return true;
         }
         const err = String((res && res.error) || "POLICY_CHECK_FAILED");
+        if(err==="RATE_LIMITED"){op2pMarkRateLimitCooldown();return true;}
         if (["SYSTEM_KILLED","CLIENT_UPDATE_REQUIRED","LICENSE_MANUALLY_LOCKED","LICENSE_INACTIVE","BROWSER_LOCKED","LICENSE_REVOKED","LICENSE_EXPIRED","SESSION_INVALID","SESSION_EXPIRED","MISSING_SESSION"].includes(err)) {
             op2pSecurityHardStop(err);
             _0x019("SECURITY_LOCK", err, "ERROR").catch(()=>{});
