@@ -38,7 +38,7 @@ const _0x006 = 15 * 60 * 1000;
 const _0x007 = "11.7.14";
 const OP2P_UPDATE_CENTER_URL = "https://op2p.github.io/OP2P-LatestUpdate/index.html";
 const _0x008 = "OP2P_CLIENT_HEALTH_V10";
-const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_9";
+const OP2P_POLICY_STORAGE = "OP2P_SERVER_POLICY_V11_7_14";
 
 // V11.7.14: Coordinate periodic server traffic across tabs sharing one browser ID.
 // RUN/STOP state remains tab-local; this only reduces redundant telemetry/policy/heartbeat bursts.
@@ -179,7 +179,7 @@ let op2pUiStart = null;
 let op2pUiSchedule = null;
 let op2pUiExecuteDue = null;
 
-// V11.7.9 managed runtime lifecycle: long-lived timers/listeners are owned centrally
+// Managed runtime lifecycle: long-lived timers/listeners are owned centrally
 // so SPA navigation, hard-stop and UI rebuilds cannot leave orphaned runtime work behind.
 let op2pDashboardTimer = null;
 let op2pSpaPollTimer = null;
@@ -547,7 +547,7 @@ function op2pNormalizePolicy(policy) {
         maxActionsPerSession: Math.max(0, Math.floor(n(srcConfig.maxActionsPerSession, 0)))
     };
     if (config.maxDelaySeconds < config.minDelaySeconds) config.maxDelaySeconds = config.minDelaySeconds;
-    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.7.9"), updatedAt:Number(p.updatedAt || Date.now()) };
+    return { plan:String(p.plan || "PRO"), customer:String(p.customer || ""), status:String(p.status || "ACTIVE"), licenseState:String(p.licenseState || "ACTIVATED"), expiry:String(p.expiry || ""), startDate:String(p.startDate || ""), browserLocked:p.browserLocked !== false, sessionExpires:String(p.sessionExpires || ""), actionsUsed:Math.max(0,Math.floor(n(p.actionsUsed,0))), maxActionsPerSession:Math.max(0,Math.floor(n(p.maxActionsPerSession,config.maxActionsPerSession))), clientStatus:String(p.clientStatus || "ONLINE"), lastHealthSeen:String(p.lastHealthSeen || ""), lastSeen:String(p.lastSeen || ""), securityAlerts:Math.max(0,Math.floor(n(p.securityAlerts,0))), healthErrors:Math.max(0,Math.floor(n(p.healthErrors,0))), systemStatus:String(p.systemStatus || "ACTIVE"), features, config, policyVersion:String(p.policyVersion || "11.7.14"), updatedAt:Number(p.updatedAt || Date.now()) };
 }
 
 async function op2pLoadServerPolicy(showAlert=false) {
@@ -1319,7 +1319,7 @@ function op2pIsBusyForRefresh() {
 
 const OP2P_PERSIST_STATE_KEY = "OP2P_USER_PERSIST_STATE_V3";
 const OP2P_RUN_INTENT_KEY = "OP2P_USER_RUN_INTENT_V2";
-// V11.7.12: all refresh/runtime state is strictly TAB-LOCAL. The legacy
+// Current runtime state is strictly TAB-LOCAL. The legacy
 // localStorage keys are retained only as identifiers for compatibility; they are
 // never used as a fallback because that would let a new tab inherit another
 // tab's RUNNING state.
@@ -1511,7 +1511,7 @@ function init() {
     }
 }
 
-// V11.7.7 SPA navigation detection: Facebook changes routes without a full page reload.
+// SPA navigation detection: Facebook changes routes without a full page reload.
 let op2pSpaDetectorStarted = false;
 let op2pSpaLastUrl = String(location.href || "");
 
@@ -1720,7 +1720,7 @@ function _0x03f() {
     <div class="panel">
         <div class="brandRow">
             <div class="title">⚡ OP2P PRO</div>
-            <span class="brandBadge">V11.7.9 • PREMIUM</span>
+            <span class="brandBadge">V11.7.14 • PREMIUM</span>
         </div>
         <div class="subtle">Automation Control Dashboard</div>
         <div id="status" class="status">● READY</div>
@@ -2088,7 +2088,7 @@ function _0x03f() {
             dashLicenseMeta.textContent = licState + (op2pServerPolicy.customer ? " • " + op2pServerPolicy.customer : "");
             dashPlan.textContent = planText;
             dashPlan.className = "dashValue securityGood";
-            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.7.9");
+            dashPlanMeta.textContent = "Policy v" + String(op2pServerPolicy.policyVersion || "11.7.14");
             dashBrowser.textContent = op2pServerPolicy.browserLocked ? "✓ LOCKED" : "⚠ UNBOUND";
             dashBrowser.className = "dashValue " + (op2pServerPolicy.browserLocked ? "securityGood" : "securityWatch");
             dashBrowserMeta.textContent = _0x015.browser + " " + _0x015.version;
@@ -2109,7 +2109,7 @@ function _0x03f() {
             dashOverviewMeta.textContent = "Activity " + activity + " • " + (running ? "RUNNING" : "IDLE") + (op2pServerPolicy.securityAlerts ? " • alerts " + op2pServerPolicy.securityAlerts : "");
             dashModePill.textContent = selectedModes.size ? ([...selectedModes].join(" + ")) : (running ? "RUNNING" : "READY");
             const planBadge = shadow.querySelector(".brandBadge");
-            if (planBadge) planBadge.textContent = "V11.7.11 • " + planText + " • SERVER";
+            if (planBadge) planBadge.textContent = "V11.7.14 • " + planText + " • SERVER";
         } catch(e) {}
     }
 
@@ -3152,7 +3152,7 @@ function _0x042() {
     op2pWatchdogTimer = setInterval(() => {
         if (op2pSecurityBlocked()) return;
 
-        // V11.7.11: a tab may retain the RUNNING intent while its local
+        // Current tab-local runtime: a tab may retain the RUNNING intent while its local
         // runtime was interrupted by SPA rebuilds, tab suspension, or a
         // failed lifecycle transition. Rehydrate that tab only; never copy
         // another tab's runtime flags.
@@ -3172,7 +3172,7 @@ function _0x042() {
             return;
         }
 
-        // V11.7.11 liveness check: timerActive=true must have a real wake
+        // Current liveness check: timerActive=true must have a real wake
         // source. If the wake source disappeared, re-arm the scheduler.
         const hasPageTimer = !!timer;
         const hasBackgroundWake = !!op2pBackgroundWorkerTimer && typeof op2pBackgroundWakeCallback === "function";
@@ -3204,7 +3204,7 @@ function _0x044() {
 }
 
 op2pGetTabRuntimeId();
-// V11.7.12: explicitly ignore legacy global RUNNING markers. The active tab
+// Explicitly ignore legacy global RUNNING markers. The active tab
 // owns its own sessionStorage runtime state.
 try { localStorage.removeItem(OP2P_RUN_INTENT_KEY); } catch (e) {}
 op2pResumeLatch = op2pGetRunIntent();
